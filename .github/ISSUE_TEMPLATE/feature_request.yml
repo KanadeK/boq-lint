@@ -1,0 +1,70 @@
+name: Feature request / 功能建议
+description: Propose a focused improvement within BOQLint's local data-quality scope.
+title: '[Feature] '
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        BOQLint is a local `.xlsx` data-quality checker. It does not provide cloud upload, accounts, AI review, market-price judgment, automatic costing/coding, ERP, or final-account audit. Use only fictional examples.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem / 用户问题
+      description: Describe the delivery workflow and the concrete difficulty, not only the desired UI.
+      placeholder: Before submitting a priced BOQ, I need to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior / 建议行为
+      description: Explain inputs, outputs, decisions the user retains, and how uncertainty is communicated.
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Fictional examples and edge cases / 虚构示例与边界
+      description: Include normal cases, counterexamples, and likely false positives using no real data.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered / 替代方案
+      description: How is the problem handled today, and why is that insufficient?
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Primary area / 主要范围
+      options:
+        - Import and file handling
+        - Header detection and mapping
+        - Row classification
+        - Validation rule
+        - Results, filtering, or context
+        - CSV, JSON, or XLSX report
+        - Offline build
+        - Accessibility, language, or theme
+        - Documentation or contributor experience
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Boundary and data confirmations / 边界与数据确认
+      options:
+        - label: The proposal keeps user workbooks in the browser and adds no upload, backend, account, telemetry, advertising, or third-party recognition API.
+          required: true
+        - label: The proposal does not claim standards compliance, professional advice, market-price correctness, or automatic audit conclusions.
+          required: true
+        - label: This issue and every attachment contain only entirely fictional data and no restricted standards/database content.
+          required: true

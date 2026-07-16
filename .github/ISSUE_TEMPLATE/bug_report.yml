@@ -1,0 +1,97 @@
+name: Bug report / 缺陷报告
+description: Report a reproducible BOQLint problem using fictional or fully sanitized data.
+title: '[Bug] '
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. **Do not upload a real project workbook, client/company name, non-public price, personal data, credential, or security exploit.** Create the smallest entirely fictional `.xlsx` reproduction instead. Report vulnerabilities privately under `SECURITY.md`.
+
+  - type: input
+    id: version
+    attributes:
+      label: BOQLint version / 版本
+      description: For example, v0.1.0, the offline file name, or a commit SHA.
+      placeholder: v0.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: build
+    attributes:
+      label: Build / 使用方式
+      options:
+        - GitHub Pages online build
+        - Single-file offline HTML
+        - Local development server
+        - Automated test or library code
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Check mode / 检查模式
+      options:
+        - Unpriced BOQ / 未计价工程量清单
+        - Priced BOQ / 已计价工程量清单
+        - Not applicable / 不适用
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / 环境
+      description: Operating system, browser and version, device type, Node.js version when relevant.
+      placeholder: Windows 11; Chrome 126; desktop; Node.js 20.x
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps / 复现步骤
+      description: Include the selected worksheet, header row, field mapping, and rule settings when relevant.
+      placeholder: |
+        1. Load the built-in issue sample...
+        2. Select priced mode...
+        3. Change ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / 预期行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior / 实际行为
+      description: Include the exact user-visible message. Sanitize paths and data before adding logs or screenshots.
+    validations:
+      required: true
+
+  - type: textarea
+    id: fictional_reproduction
+    attributes:
+      label: Fictional reproduction / 虚构复现
+      description: Describe or attach only a small, entirely fictional file. You may also identify an existing built-in sample and row.
+      placeholder: public/samples/boq-issues-zh.xlsx, row 12
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations / 确认
+      options:
+        - label: I searched existing issues and can reproduce the problem on the stated version.
+          required: true
+        - label: This report and every attachment contain no real project, company, client, price, personal, credential, or restricted data.
+          required: true
+        - label: This is not an undisclosed security vulnerability; I will use the private security channel if it is.
+          required: true
