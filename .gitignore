@@ -1,6 +1,7 @@
 node_modules/
 dist/
 coverage/
+release/
 playwright-report/
 test-results/
 .vite/
@@ -9,3 +10,4 @@ blob-report/
 *.log
 .DS_Store
 Thumbs.db
+*.tsbuildinfo

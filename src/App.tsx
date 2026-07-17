@@ -24,8 +24,7 @@ import {
   type RuleId,
   type WorksheetSnapshot,
 } from './core';
-import { CheckingStep } from './ui/CheckingStep';
-import { getMessages } from './ui/i18n';
+import { getFieldLabel, getMessages } from './ui/i18n';
 import { ImportStep } from './ui/ImportStep';
 import { MappingStep } from './ui/MappingStep';
 import { ResultsStep } from './ui/ResultsStep';
@@ -51,9 +50,10 @@ import {
 
 const LANGUAGE_STORAGE_KEY = 'boq-lint:locale';
 const THEME_STORAGE_KEY = 'boq-lint:theme';
+const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 const SAMPLE_FILES = {
-  valid: 'samples/boq-valid-zh.xlsx',
-  issues: 'samples/boq-issues-zh.xlsx',
+  valid: 'samples/boq-clean-sample.xlsx',
+  issues: 'samples/boq-risk-sample.xlsx',
 } as const;
 
 const REQUIRED_FIELDS: Readonly<Record<CheckMode, readonly StandardField[]>> = {
@@ -79,7 +79,7 @@ function writePreference(key: string, value: string): void {
 
 async function createOfflineSample(sample: keyof typeof SAMPLE_FILES): Promise<Blob> {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'BOQLint';
+  workbook.creator = 'BOQ Lint';
   const sheet = workbook.addWorksheet('虚构清单');
   const headers = [
     '序号',
@@ -92,7 +92,7 @@ async function createOfflineSample(sample: keyof typeof SAMPLE_FILES): Promise<B
     '合价',
     '备注',
   ];
-  sheet.addRow(['BOQLint 虚构演示数据']);
+  sheet.addRow(['BOQ Lint 虚构演示数据']);
   sheet.addRow(['仅用于功能演示，不代表真实项目或价格']);
   sheet.addRow(headers);
 
@@ -167,10 +167,12 @@ function applyTheme(theme: ThemePreference): void {
 function uiRuleConfig(config: RuleConfig): UiRuleConfig {
   return {
     calcTolerance: config.calcTolerance,
+    relativeTolerance: config.relativeTolerance,
+    dispersionRatio: config.dispersionRatio,
+    featureMinLength: config.featureMinLength,
     rules: RULE_IDS.map((ruleId) => ({
       ruleId,
       severity: RULE_METADATA[ruleId].defaultSeverity,
-      core: RULE_METADATA[ruleId].core,
       enabled: config.rules[ruleId].enabled,
     })),
   };
@@ -192,7 +194,7 @@ function headerCells(sheet: WorksheetSnapshot, rowNumber: number) {
 function previewRows(sheet: WorksheetSnapshot, headerRow: number) {
   return sheet.rows
     .filter((row) => row.rowNumber > headerRow)
-    .slice(0, 50)
+    .slice(0, 10)
     .map((row) => ({
       rowNumber: row.rowNumber,
       cells: Object.values(row.cells)
@@ -350,6 +352,7 @@ export function App() {
   const [sheets, setSheets] = useState<readonly SheetMapping[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
   const [checkState, setCheckState] = useState<ProgressState>({ phase: 'mapping', percent: 0 });
+  const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
   const [report, setReport] = useState<LintReport | null>(null);
   const [exporting, setExporting] = useState<'csv' | 'json' | 'xlsx' | null>(null);
@@ -402,6 +405,8 @@ export function App() {
         HEADER_NOT_FOUND: messages.errorHeader,
         NO_DETAIL_ROWS: messages.errorNoDetails,
         INVALID_CONFIG: messages.errorInvalidConfig,
+        FILE_TOO_LARGE: messages.errorTooLarge,
+        UNSUPPORTED_FORMAT: messages.errorUnsupported,
       } as const;
       return byCode[error.code];
     }
@@ -413,6 +418,7 @@ export function App() {
     setLocale(nextLocale);
     setImportError(null);
     setCheckError(null);
+    setChecking(false);
     setExportError(null);
   };
 
@@ -452,6 +458,7 @@ export function App() {
         name: parsed.file.name,
         size: parsed.file.size,
         sheetCount: parsed.file.sheetCount,
+        sheetNames: parsed.sheets.map((sheet) => sheet.name),
         source,
       });
       setParseState({ phase: 'parsing', percent: 100 });
@@ -467,6 +474,15 @@ export function App() {
   };
 
   const handleFile = (file: File) => {
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      operationRef.current += 1;
+      setLoading(false);
+      setImportError(messages.errorTooLarge);
+      setFileSummary(null);
+      setWorkbook(null);
+      setSheets([]);
+      return;
+    }
     if (!/\.xlsx$/iu.test(file.name)) {
       operationRef.current += 1;
       setLoading(false);
@@ -509,17 +525,24 @@ export function App() {
   };
 
   const selectedSheets = sheets.filter((sheet) => sheet.selected);
-  const mappingReady =
-    selectedSheets.length > 0 &&
-    selectedSheets.every((sheet) =>
-      REQUIRED_FIELDS[mode].every((field) => sheet.mapping[field] !== undefined),
-    );
+  const missingMappings = selectedSheets
+    .map((sheet) => ({
+      sheet: sheet.name,
+      fields: REQUIRED_FIELDS[mode].filter((field) => sheet.mapping[field] === undefined),
+    }))
+    .filter((entry) => entry.fields.length > 0);
+  const mappingReady = selectedSheets.length > 0 && missingMappings.length === 0;
   const mappingError =
     selectedSheets.length === 0
       ? messages.noSheetSelected
       : mappingReady
         ? null
-        : messages.mappingMissing;
+        : `${messages.mappingMissing} ${missingMappings
+            .map(
+              (entry) =>
+                `${entry.sheet}: ${entry.fields.map((field) => getFieldLabel(messages, field)).join(locale === 'zh-CN' ? '、' : ', ')}`,
+            )
+            .join(locale === 'zh-CN' ? '；' : '; ')}`;
 
   const changeHeaderRow = (sheetId: string, headerRow: number) => {
     const sourceSheet = workbook?.sheets.find((sheet) => String(sheet.index) === sheetId);
@@ -553,13 +576,13 @@ export function App() {
     );
   };
 
-  const runCheck = async () => {
+  const runCheck = async (configOverride: RuleConfig = ruleConfig) => {
     if (workbook === null || !mappingReady) return;
     const operation = operationRef.current + 1;
     operationRef.current = operation;
-    setStep('check');
+    setChecking(true);
     setCheckError(null);
-    setReport(null);
+    if (step !== 'results') setReport(null);
     setCheckState({ phase: 'mapping', percent: 2 });
     await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
     try {
@@ -570,7 +593,7 @@ export function App() {
         headerRows: Object.fromEntries(
           selectedSheets.map((sheet) => [sheet.name, sheet.headerRow]),
         ),
-        config: ruleConfig,
+        config: configOverride,
         batchSize: 200,
         onProgress: (event) => {
           if (operationRef.current === operation) setCheckState(checkProgress(event));
@@ -579,10 +602,12 @@ export function App() {
       if (operationRef.current !== operation) return;
       setReport(nextReport);
       setCheckState({ phase: 'reporting', percent: 100 });
+      setChecking(false);
       setStep('results');
     } catch (error) {
       if (operationRef.current !== operation) return;
       setCheckError(friendlyError(error));
+      setChecking(false);
     }
   };
 
@@ -611,31 +636,42 @@ export function App() {
   const updateRule = (ruleId: string, enabled: boolean) => {
     if (!RULE_IDS.includes(ruleId as RuleId)) return;
     const typedId = ruleId as RuleId;
-    if (RULE_METADATA[typedId].core) return;
-    setRuleConfig((current) => ({
-      ...current,
-      rules: { ...current.rules, [typedId]: { enabled } },
-    }));
+    const next = {
+      ...ruleConfig,
+      rules: { ...ruleConfig.rules, [typedId]: { enabled } },
+    };
+    setRuleConfig(next);
     setSettingsStatus(null);
     setSettingsError(false);
+    if (step === 'results') void runCheck(next);
   };
 
-  const updateTolerance = (value: string) => {
+  const updateThreshold = (
+    field: 'calcTolerance' | 'relativeTolerance' | 'dispersionRatio' | 'featureMinLength',
+    value: string,
+  ) => {
     if (value.trim() !== value || value.length === 0) return;
     const numeric = Number(value);
     if (!Number.isFinite(numeric) || numeric < 0) return;
-    setRuleConfig((current) => ({ ...current, calcTolerance: value }));
+    if (field === 'featureMinLength' && (!Number.isInteger(numeric) || numeric < 1)) return;
+    const next: RuleConfig = {
+      ...ruleConfig,
+      [field]: field === 'featureMinLength' ? numeric : value,
+    };
+    setRuleConfig(next);
     setSettingsStatus(null);
     setSettingsError(false);
+    if (step === 'results') void runCheck(next);
   };
 
-  const importConfig = (text: string): string | null => {
+  const importConfig = (text: string): UiRuleConfig | null => {
     try {
       const imported = importRuleConfig(text);
       setRuleConfig(imported);
       setSettingsStatus('imported');
       setSettingsError(false);
-      return uiRuleConfig(imported).calcTolerance;
+      if (step === 'results') void runCheck(imported);
+      return uiRuleConfig(imported);
     } catch {
       setSettingsStatus(null);
       setSettingsError(true);
@@ -665,6 +701,33 @@ export function App() {
       <main className="app-main" id="main-content" tabIndex={-1}>
         <StepIndicator activeStep={step} messages={messages} />
 
+        {(step === 'mapping' || step === 'results') && checking && (
+          <div className="inline-check-status" role="status" aria-live="polite">
+            <strong>{messages.checkingTitle}</strong>
+            <span>{checkState.detail ?? `${Math.round(checkState.percent)}%`}</span>
+            <div
+              className="progress-track"
+              role="progressbar"
+              aria-label={messages.checkingTitle}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(checkState.percent)}
+            >
+              <span
+                className="progress-fill"
+                style={{ transform: `scaleX(${checkState.percent / 100})` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {(step === 'mapping' || step === 'results') && checkError && (
+          <div className="alert alert-error" role="alert">
+            <strong>{messages.importErrorTitle}</strong>
+            <p>{checkError}</p>
+          </div>
+        )}
+
         {step === 'import' && (
           <ImportStep
             messages={messages}
@@ -687,7 +750,7 @@ export function App() {
             mode={mode}
             sheets={sheets}
             error={mappingError}
-            ready={mappingReady}
+            ready={mappingReady && !checking}
             onToggleSheet={(sheetId, selected) =>
               setSheets((current) =>
                 current.map((sheet) => (sheet.id === sheetId ? { ...sheet, selected } : sheet)),
@@ -708,15 +771,6 @@ export function App() {
           />
         )}
 
-        {step === 'check' && (
-          <CheckingStep
-            messages={messages}
-            progress={checkState}
-            error={checkError}
-            onBack={() => setStep('mapping')}
-          />
-        )}
-
         {step === 'results' && result !== null && (
           <ResultsStep
             locale={locale}
@@ -728,6 +782,11 @@ export function App() {
             onBack={() => setStep('mapping')}
             onRecheck={() => void runCheck()}
             onNewFile={clear}
+            onOpenSettings={() => {
+              setSettingsOpen(true);
+              setSettingsStatus(null);
+              setSettingsError(false);
+            }}
           />
         )}
       </main>
@@ -750,13 +809,14 @@ export function App() {
           status={settingsStatus}
           error={settingsError}
           onClose={() => setSettingsOpen(false)}
-          onToleranceChange={updateTolerance}
+          onThresholdChange={updateThreshold}
           onRuleToggle={updateRule}
           onRestore={() => {
             setRuleConfig(DEFAULT_RULE_CONFIG);
             setSettingsStatus('restored');
             setSettingsError(false);
-            return uiRuleConfig(DEFAULT_RULE_CONFIG).calcTolerance;
+            if (step === 'results') void runCheck(DEFAULT_RULE_CONFIG);
+            return uiRuleConfig(DEFAULT_RULE_CONFIG);
           }}
           onImport={importConfig}
           onExport={() =>

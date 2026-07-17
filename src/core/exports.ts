@@ -2,12 +2,13 @@ import ExcelJS from 'exceljs';
 
 import { RULE_METADATA } from './config';
 import { fieldLabel } from './fields';
-import type { LintIssue, LintReport, Severity } from './types';
+import type { LintIssue, LintReport, RuleCategory, Severity } from './types';
 import { RULE_IDS } from './types';
 
 const ISSUE_HEADERS = [
   '严重程度',
   '规则编号',
+  '规则类别',
   '工作表',
   'Excel 行号',
   '字段/列',
@@ -25,6 +26,18 @@ const SEVERITY_LABELS: Readonly<Record<Severity, string>> = {
   error: '错误',
   warning: '警告',
   info: '提示',
+};
+
+const CATEGORY_LABELS: Readonly<Record<RuleCategory, string>> = {
+  required: '必填字段',
+  quantity: '工程量',
+  code: '项目编码',
+  duplicate: '重复项',
+  text: '文本质量',
+  calculation: '金额计算',
+  pricing: '价格风险',
+  formula: '公式',
+  structure: '导入结构',
 };
 
 function serializableValue(value: unknown): string | number | boolean | null {
@@ -45,10 +58,22 @@ function serializableValue(value: unknown): string | number | boolean | null {
 
 function issueRow(issue: LintIssue): readonly (string | number | boolean | null)[] {
   const field = issue.field === null ? '' : fieldLabel(issue.field);
-  const fieldAndColumn = issue.column === null ? field : `${field} (${issue.column})`;
+  const fieldAndColumn =
+    field.length > 0
+      ? issue.cellAddress === undefined
+        ? issue.column === null
+          ? field
+          : `${field} (第 ${issue.column} 列)`
+        : `${field} (${issue.cellAddress})`
+      : issue.cellAddress === undefined
+        ? issue.column === null
+          ? `第 ${issue.rowNumber} 行`
+          : `第 ${issue.column} 列`
+        : `单元格 ${issue.cellAddress}`;
   return [
     SEVERITY_LABELS[issue.severity],
     issue.ruleId,
+    CATEGORY_LABELS[issue.category],
     issue.sheetName,
     issue.rowNumber,
     fieldAndColumn,
@@ -65,7 +90,8 @@ function issueRow(issue: LintIssue): readonly (string | number | boolean | null)
 
 function escapeCsv(value: string | number | boolean | null | undefined): string {
   if (value === null || value === undefined) return '';
-  const text = String(value);
+  const source = String(value);
+  const text = typeof value === 'string' ? source.replace(/^(\s*)(?=[=+\-@])/u, "$1'") : source;
   return /[",\r\n]/u.test(text) ? `"${text.replace(/"/gu, '""')}"` : text;
 }
 
@@ -167,30 +193,31 @@ function addIssuesSheet(workbook: ExcelJS.Workbook, report: LintReport): void {
       fgColor: { argb: severityColor(issue.severity) },
     };
   }
-  configureTableSheet(sheet, [10, 12, 18, 12, 20, 18, 24, 20, 48, 48, 14, 14, 14]);
-  for (const column of [11, 12, 13]) sheet.getColumn(column).numFmt = '#,##0.00';
+  configureTableSheet(sheet, [10, 12, 14, 18, 12, 20, 18, 24, 20, 48, 48, 14, 14, 14]);
+  for (const column of [12, 13, 14]) sheet.getColumn(column).numFmt = '#,##0.00';
 }
 
 function addRulesSheet(workbook: ExcelJS.Workbook, report: LintReport): void {
   const sheet = workbook.addWorksheet('规则说明');
-  sheet.addRow(['规则编号', '名称', '默认严重程度', '是否启用', '说明', '修复建议']);
+  sheet.addRow(['规则编号', '名称', '类别', '默认严重程度', '是否启用', '说明', '修复建议']);
   for (const ruleId of RULE_IDS) {
     const metadata = RULE_METADATA[ruleId];
     sheet.addRow([
       ruleId,
       metadata.name,
+      CATEGORY_LABELS[metadata.category],
       SEVERITY_LABELS[metadata.defaultSeverity],
       report.ruleConfig.rules[ruleId].enabled ? '是' : '否',
       metadata.description,
       metadata.remediation,
     ]);
   }
-  configureTableSheet(sheet, [12, 22, 14, 12, 55, 55]);
+  configureTableSheet(sheet, [12, 22, 14, 14, 12, 55, 55]);
 }
 
 export async function createXlsxReport(report: LintReport): Promise<Uint8Array> {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'BOQLint';
+  workbook.creator = 'BOQ Lint';
   workbook.created = new Date(report.checkedAt);
   addSummarySheet(workbook, report);
   addIssuesSheet(workbook, report);
@@ -219,5 +246,5 @@ function pad(value: number): string {
 export function formatReportFileName(fileName: string, date = new Date()): string {
   const baseName = fileName.replace(/\.xlsx$/iu, '') || '工程量清单';
   const timestamp = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}`;
-  return `${baseName}_BOQLint_检查报告_${timestamp}.xlsx`;
+  return `${baseName}_BOQ_Lint_检查报告_${timestamp}.xlsx`;
 }

@@ -1,6 +1,6 @@
 # Security Policy
 
-BOQLint processes untrusted `.xlsx` files in the browser. Local-only processing removes a server upload path, but malformed workbooks, unsafe rendering, spreadsheet injection, dependency compromise, and resource exhaustion still require careful handling.
+BOQ Lint processes untrusted `.xlsx` files in the browser. Local-only processing removes a server upload path, but malformed workbooks, unsafe rendering, spreadsheet injection, dependency compromise, and resource exhaustion still require careful handling.
 
 ## Supported versions
 
@@ -42,7 +42,6 @@ Please report issues such as:
 - unexpected execution of workbook macros, formulas, external links, or embedded content;
 - persistence of workbook data or results in `localStorage`, IndexedDB, cookies, logs, or telemetry;
 - path traversal or unsafe file handling in development/release scripts;
-- offline HTML making network requests during import, checking, or export;
 - dependency or build-chain compromise with a practical impact on distributed artifacts; or
 - GitHub Actions permissions or artifact provenance that enable unauthorized Pages/release changes.
 
@@ -57,9 +56,7 @@ Normal parsing errors, rule false positives, copy issues, and feature requests c
 - CSV and spreadsheet exports must neutralize values that a spreadsheet program could interpret as injected formulas.
 - Reports are generated locally only after a user action and never overwrite the source workbook.
 - `localStorage` is limited to language, theme, and validated rule configuration; it must not contain workbook content, file names, or results.
-- The offline release is self-contained, has a SHA-256 checksum, and must not depend on CDN or runtime network access.
-
-More detail is available in [docs/privacy.md](docs/privacy.md) and [docs/architecture.md](docs/architecture.md).
+  More detail is available in [docs/privacy.md](docs/privacy.md) and [docs/architecture.md](docs/architecture.md).
 
 ## Safe testing
 

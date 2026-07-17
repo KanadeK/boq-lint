@@ -1,7 +1,7 @@
 node_modules
 dist
 coverage
-release/*.html
 public/samples/*.xlsx
-docs/*.png
-package-lock.json
+examples/*.xlsx
+docs/**/*.png
+pnpm-lock.yaml

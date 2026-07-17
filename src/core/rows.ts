@@ -12,8 +12,11 @@ import type {
   WorksheetSnapshot,
 } from './types';
 
-const SUBTOTAL_PATTERN = /(?:小计|合计|总计|subtotal|grand\s*total|total)/iu;
-const SECTION_PATTERN = /(?:章节|章|节|分部|分项|措施项目|chapter|section|division|part)/iu;
+const SUBTOTAL_NAME_PATTERN =
+  /(?:(?:小计|合计|总计)(?:$|[\s:：、，,（(])|^(?:subtotal|grand\s*total|total)(?:$|[\s:：,(]))/iu;
+const SECTION_NAME_PATTERN =
+  /(?:^第[一二三四五六七八九十百千万\d]+(?:章|节)(?:$|[\s:：、，,（(])|(?:分部分项(?:工程)?|分部(?:工程)?|措施项目)(?:$|[\s:：、，,（(])|^(?:章节|章|节|chapter|section|division|part)(?:$|[\s:：,(]))/iu;
+const NOTE_PATTERN = /(?:^|\s)(?:备注|说明|注[：:]?|note|remarks?)(?:\s|[：:]|$)/iu;
 
 function hasValue(value: unknown): boolean {
   return !(
@@ -109,24 +112,23 @@ function mappedCell(
   };
 }
 
-function mappedText(cells: Partial<Record<FieldKey, MappedCell>>): string {
-  return Object.values(cells)
-    .map((cell) => displayValue(cell.value).trim())
-    .filter((value) => value.length > 0)
-    .join(' ');
+export interface RowClassification {
+  readonly type: RowType;
+  readonly reason: string;
 }
 
-export function classifyMappedRow(
+export function classifyMappedRowWithReason(
   sourceRow: RowSnapshot,
   mapping: FieldMapping,
   cells: Partial<Record<FieldKey, MappedCell>>,
-): RowType {
+): RowClassification {
   if (Object.values(cells).every((cell) => !hasValue(cell.value) && cell.formula === undefined)) {
-    return 'blank';
+    return { type: 'blank', reason: '映射字段均为空。' };
   }
-  if (isHeaderLikeRow(sourceRow, mapping)) return 'repeated_header';
+  if (isHeaderLikeRow(sourceRow, mapping)) {
+    return { type: 'repeated_header', reason: '多个映射列再次出现字段别名，判定为重复表头。' };
+  }
 
-  const text = mappedText(cells);
   const code = cells.item_code?.value;
   const name = cells.item_name?.value;
   const unit = cells.unit?.value;
@@ -136,20 +138,55 @@ export function classifyMappedRow(
   const numericCount = [quantity, unitPrice, totalPrice].filter(
     (value) => hasValue(value) && parseLocaleNumber(value).valid,
   ).length;
+  const nameText = displayValue(name).trim();
+  const remarksText = displayValue(cells.remarks?.value).trim();
 
-  if (SUBTOTAL_PATTERN.test(text) && !hasValue(code)) return 'subtotal';
-
-  const coreCount = [code, name, unit, quantity, unitPrice, totalPrice].filter(hasValue).length;
-  if (
-    !hasValue(code) &&
-    numericCount === 0 &&
-    (SECTION_PATTERN.test(text) || (hasValue(name) && coreCount === 1))
-  ) {
-    return 'section';
+  if (hasValue(code)) {
+    return { type: 'item', reason: '项目编码非空，优先判定为清单项目行。' };
   }
 
-  if (hasValue(code) || numericCount > 0 || coreCount >= 2) return 'detail';
-  return 'section';
+  if (SUBTOTAL_NAME_PATTERN.test(nameText) && numericCount <= 1) {
+    return { type: 'subtotal', reason: '名称包含小计、合计或总计，且有效数值字段不足。' };
+  }
+
+  if (SECTION_NAME_PATTERN.test(nameText) && numericCount <= 1) {
+    return { type: 'section', reason: '名称包含章节、分部、分项或措施项目等标题词。' };
+  }
+
+  const coreValues = [name, unit, quantity, unitPrice, totalPrice];
+  const presentCoreCount = coreValues.filter(hasValue).length;
+  if (numericCount >= 1 && presentCoreCount >= 2) {
+    return {
+      type: 'item',
+      reason: '无项目编码，但多个核心字段存在且至少一个数值字段有效。',
+    };
+  }
+
+  const onlyRemarks =
+    hasValue(cells.remarks?.value) &&
+    [code, name, unit, quantity, unitPrice, totalPrice].every((value) => !hasValue(value));
+  const explicitNoteName = NOTE_PATTERN.test(nameText);
+  const remarksWithoutName = !hasValue(name) && NOTE_PATTERN.test(remarksText);
+  if (onlyRemarks || explicitNoteName || remarksWithoutName) {
+    return { type: 'note', reason: '仅备注字段有值，或内容含备注、说明、注释标识。' };
+  }
+
+  if (presentCoreCount >= 2) {
+    return { type: 'item', reason: '无项目编码，但名称、单位、工程量或价格等多个核心字段存在。' };
+  }
+
+  if (hasValue(name)) {
+    return { type: 'section', reason: '仅名称等少量非数值字段存在，判定为标题行。' };
+  }
+  return { type: 'note', reason: '存在非核心说明内容，但不足以判定为清单项目行。' };
+}
+
+export function classifyMappedRow(
+  sourceRow: RowSnapshot,
+  mapping: FieldMapping,
+  cells: Partial<Record<FieldKey, MappedCell>>,
+): RowType {
+  return classifyMappedRowWithReason(sourceRow, mapping, cells).type;
 }
 
 export function mapSheetRows(
@@ -167,11 +204,13 @@ export function mapSheetRows(
       cells[field] = cell;
       values[field] = cell.value;
     }
+    const classification = classifyMappedRowWithReason(sourceRow, mapping, cells);
     mappedRows.push({
       sheetName: sheet.name,
       rowNumber: sourceRow.rowNumber,
       hidden: sourceRow.hidden,
-      type: classifyMappedRow(sourceRow, mapping, cells),
+      type: classification.type,
+      classificationReason: classification.reason,
       values,
       cells,
     });
@@ -206,4 +245,13 @@ export function formulaError(value: unknown): string | undefined {
     if (typeof error === 'string') return error;
   }
   return undefined;
+}
+
+export function hasUsableFormulaResult(formula: FormulaSnapshot): boolean {
+  return (
+    formula.hasCachedResult &&
+    formula.cachedResult !== null &&
+    formula.cachedResult !== undefined &&
+    formulaError(formula.cachedResult) === undefined
+  );
 }

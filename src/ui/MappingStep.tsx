@@ -183,19 +183,19 @@ export function MappingStep({
                   <input
                     type="number"
                     min={1}
-                    max={30}
+                    max={50}
                     value={headerDraft}
                     onChange={(event) => {
                       const value = event.target.value;
                       setHeaderDraft(value);
                       const next = Number(value);
-                      if (Number.isInteger(next) && next >= 1 && next <= 30) {
+                      if (Number.isInteger(next) && next >= 1 && next <= 50) {
                         onHeaderRowChange(activeSheet.id, next);
                       }
                     }}
                     onBlur={() => {
                       const next = Number(headerDraft);
-                      if (!Number.isInteger(next) || next < 1 || next > 30) {
+                      if (!Number.isInteger(next) || next < 1 || next > 50) {
                         setHeaderDraft(String(activeSheet.headerRow));
                       }
                     }}
@@ -290,7 +290,7 @@ export function MappingStep({
                       </tr>
                     </thead>
                     <tbody>
-                      {activeSheet.previewRows.slice(0, 50).map((row) => (
+                      {activeSheet.previewRows.slice(0, 10).map((row) => (
                         <tr key={row.rowNumber}>
                           <th scope="row">{row.rowNumber}</th>
                           {activeSheet.headers.map((header) => (

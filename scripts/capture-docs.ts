@@ -13,7 +13,7 @@ const BASE_URL = `http://${HOST}:${PORT}`;
 const APP_START_TIMEOUT_MS = 60_000;
 
 interface ScreenshotSpec {
-  readonly fileName: string;
+  readonly relativePath: string;
   readonly width: number;
   readonly height: number;
 }
@@ -27,7 +27,7 @@ async function isAppAvailable(): Promise<boolean> {
     const response = await fetch(BASE_URL, { signal: AbortSignal.timeout(1_000) });
     if (!response.ok) return false;
     const html = await response.text();
-    return html.includes('<title>BOQLint / 清单体检</title>') && html.includes('id="root"');
+    return html.includes('<title>BOQ Lint / 清单校核</title>') && html.includes('id="root"');
   } catch {
     return false;
   }
@@ -49,7 +49,7 @@ async function waitForApp(server: ChildProcess): Promise<void> {
 
 async function startAppIfNeeded(): Promise<ChildProcess | null> {
   if (await isAppAvailable()) {
-    console.info(`Reusing the running BOQLint app at ${BASE_URL}.`);
+    console.info(`Reusing the running BOQ Lint app at ${BASE_URL}.`);
     return null;
   }
 
@@ -83,7 +83,7 @@ async function startAppIfNeeded(): Promise<ChildProcess | null> {
     );
   }
 
-  console.info(`Started the BOQLint app at ${BASE_URL}.`);
+  console.info(`Started the BOQ Lint app at ${BASE_URL}.`);
   return server;
 }
 
@@ -118,8 +118,9 @@ function assertContainsAll(text: string, required: readonly string[], label: str
 }
 
 async function capturePage(page: Page, spec: ScreenshotSpec): Promise<void> {
-  const finalPath = path.join(DOCS_DIRECTORY, spec.fileName);
-  const temporaryPath = path.join(DOCS_DIRECTORY, `.${spec.fileName}.tmp.png`);
+  const finalPath = path.join(DOCS_DIRECTORY, spec.relativePath);
+  const temporaryPath = path.join(path.dirname(finalPath), `.${path.basename(finalPath)}.tmp.png`);
+  await mkdir(path.dirname(finalPath), { recursive: true });
 
   try {
     await page.screenshot({
@@ -190,7 +191,7 @@ async function captureResultsPreview(browser: Browser): Promise<void> {
 
     const visibleText = await results.innerText();
     assertContainsAll(visibleText, ['错误', '警告', '提示'], 'Results preview');
-    if (!/(REQ-001|NUM-001|CALC-001|FORMULA-001)/u.test(visibleText)) {
+    if (!/QG0(?:0[1-9]|1[0-4])/u.test(visibleText)) {
       throw new Error('Results preview does not visibly contain an issue rule ID.');
     }
     const headerPosition = await page
@@ -200,7 +201,19 @@ async function captureResultsPreview(browser: Browser): Promise<void> {
       throw new Error('Results preview stylesheet did not apply to the application header.');
     }
 
-    await capturePage(page, { fileName: 'preview.png', width: 1440, height: 900 });
+    await capturePage(page, {
+      relativePath: 'assets/overview.png',
+      width: 1440,
+      height: 900,
+    });
+
+    await page.locator('.issues-section').scrollIntoViewIfNeeded();
+    await page.evaluate(() => window.scrollBy(0, -72));
+    await capturePage(page, {
+      relativePath: 'assets/issues.png',
+      width: 1440,
+      height: 900,
+    });
   } finally {
     await context.close();
   }
@@ -223,7 +236,7 @@ async function captureSocialPreview(browser: Browser): Promise<void> {
     await page.evaluate(() => window.scrollTo(0, 0));
 
     const visibleText = await socialPreview.innerText();
-    assertContainsAll(visibleText, ['BOQLint', '清单体检'], 'Social preview');
+    assertContainsAll(visibleText, ['BOQ Lint', '清单校核'], 'Social preview');
     const socialStyles = await socialPreview.evaluate((element) => {
       const styles = getComputedStyle(element);
       return { display: styles.display, backgroundColor: styles.backgroundColor };
@@ -232,7 +245,11 @@ async function captureSocialPreview(browser: Browser): Promise<void> {
       throw new Error('Social preview stylesheet did not apply to the capture layout.');
     }
 
-    await capturePage(page, { fileName: 'social-preview.png', width: 1280, height: 640 });
+    await capturePage(page, {
+      relativePath: 'social-preview.png',
+      width: 1280,
+      height: 640,
+    });
   } finally {
     await context.close();
   }

@@ -1,164 +1,120 @@
-# BOQLint / 清单体检
+# BOQ Lint / 清单校核
 
 [简体中文](README.md)
 
-BOQLint is a local-first, browser-based pre-delivery checker for Bill of Quantities Excel workbooks. It helps quantity surveyors and project teams locate missing fields, invalid numbers, duplicates, unit conflicts, amount mismatches, and formula errors.
+BOQ Lint is a local-first Excel risk checker for Bill of Quantities. It helps Quantity Surveying, Construction Cost, Cost Estimation, and Tendering teams detect data-quality and consistency risks before a workbook is imported, reviewed, or delivered.
 
-[Live demo](https://kanadek.github.io/boq-lint/) · [GitHub Release](https://github.com/KanadeK/boq-lint/releases/tag/v0.1.0) · [Rule reference](docs/rules.md) · [Privacy](docs/privacy.md) · [Contributing](CONTRIBUTING.md)
+The selected workbook is processed entirely in the browser. There is no backend, upload API, database, account, telemetry, advertising, AI, LLM, or API key.
 
-![BOQLint issue-check results](docs/preview.png)
+![BOQ Lint overview](docs/assets/overview.png)
 
-> Your workbook is processed only in your browser and is never uploaded. BOQLint never modifies the source workbook; it creates separate reports.
+See also: [issue results](docs/assets/issues.png), [rule catalog](docs/rule-catalog.md), [domain assumptions](docs/domain-assumptions.md), and [privacy](docs/privacy.md).
 
-## Where it fits
+## What it solves
 
-```text
-Prepare or price a Bill of Quantities
-                 ↓
-             Export .xlsx
-                 ↓
-       Run BOQLint locally
-                 ↓
-Correct field, duplicate, amount, or formula issues
-                 ↓
-Import into costing software, submit for review, or deliver
-```
+- inconsistent worksheet layouts, header rows, and field aliases;
+- missing item code, name, feature, unit, quantity, unit price, or total price;
+- invalid numeric values and inconsistent amount calculations;
+- duplicate codes and possible duplicate BOQ items;
+- short or placeholder item-feature descriptions;
+- formula cells without readable cached results;
+- hidden rows, hidden columns, and merged-cell structure risks;
+- inconsistent manual issue lists that are difficult to hand back to preparers.
 
-BOQLint is a data-quality aid before delivery. It is not costing software, a final-account audit tool, a price database, or an item-code generator.
+## Three-step workflow
 
-## Use it in three steps
+1. Import one `.xlsx` file up to 20 MB, or load the fictional built-in issue sample.
+2. Confirm worksheets, detected header rows, and field mappings; adjust them when needed.
+3. Run checks, filter and locate issues, then export XLSX, CSV, or JSON reports.
 
-1. **Choose a mode and import**: select an unpriced or priced BOQ, then drop an `.xlsx` file or load a built-in clean/issue sample.
-2. **Confirm detection and mapping**: choose worksheets, review the detected header row and field mapping, and adjust them for your template when needed.
-3. **Check, locate, and export**: run the rules, filter by severity, rule, worksheet, or text, inspect source-row context, and export XLSX, CSV, or JSON reports.
+## Supported files
 
-The interface presents the full flow as Import → Map → Check → Results.
+| Format                        | v0.1.0                                   |
+| ----------------------------- | ---------------------------------------- |
+| `.xlsx`                       | Supported; processed locally             |
+| `.xls`                        | Not supported                            |
+| `.xlsm`                       | Not supported; macros are never executed |
+| PDF                           | Not supported                            |
+| Encrypted or corrupt workbook | Rejected with a clear error              |
 
-## Check modes
+Refreshing or closing the page does not restore imported workbook content, file names, mappings, or results.
 
-| Mode         | Required fields                                               | Amount check                                       |
-| ------------ | ------------------------------------------------------------- | -------------------------------------------------- |
-| Unpriced BOQ | Item code, item name, unit, quantity                          | Unit price and total price are optional            |
-| Priced BOQ   | Item code, item name, unit, quantity, unit price, total price | Verifies quantity × unit price against total price |
+## Auxiliary rule overview
 
-An empty item feature is a warning in both modes.
+| Rule    | Severity | Check                                                |
+| ------- | -------- | ---------------------------------------------------- |
+| `QG001` | error    | Missing item name                                    |
+| `QG002` | error    | Missing unit                                         |
+| `QG003` | error    | Invalid or negative quantity                         |
+| `QG004` | warning  | Zero quantity                                        |
+| `QG005` | warning  | Missing item code                                    |
+| `QG006` | info     | Uncommon item-code format                            |
+| `QG007` | warning  | Duplicate non-empty code within one worksheet        |
+| `QG008` | warning  | Possible duplicate item fingerprint                  |
+| `QG009` | warning  | Missing, short, or placeholder item feature          |
+| `QG010` | error    | Quantity × unit price does not match total price     |
+| `QG011` | warning  | Zero or negative unit price                          |
+| `QG012` | info     | Large unit-price deviation within a comparable group |
+| `QG013` | warning  | Formula without a readable cached result             |
+| `QG014` | info     | Hidden row/column or merged-cell structure risk      |
 
-## Supported files and limits
-
-| File                                   | v0.1.0 support                            |
-| -------------------------------------- | ----------------------------------------- |
-| `.xlsx`                                | Supported and read locally in the browser |
-| `.xls`                                 | Not supported; save as `.xlsx` first      |
-| Encrypted/password-protected workbooks | Not supported; a clear error is shown     |
-| Corrupt or unreadable workbooks        | Rejected with a user-readable error       |
-| `.xlsm`, PDF, or CSV import            | Outside the v0.1.0 scope                  |
-
-A browser is not the Excel/WPS calculation engine. When a formula has no readable cached result, BOQLint asks the user to recalculate and save the workbook instead of guessing.
-
-## Rule overview
-
-| Rule          | Default severity | Check                                                                               |
-| ------------- | ---------------- | ----------------------------------------------------------------------------------- |
-| `REQ-001`     | Error            | A field required by the selected mode is missing                                    |
-| `NUM-001`     | Error            | Quantity, unit price, or total price is not a valid number                          |
-| `QTY-001`     | Warning          | Quantity is zero or negative                                                        |
-| `DUP-001`     | Warning          | An exact detail-row duplicate exists in the same worksheet                          |
-| `DUP-002`     | Warning          | One item code has conflicting names, units, or features                             |
-| `UNIT-001`    | Warning          | One code or normalized name uses different units                                    |
-| `CALC-001`    | Error            | In priced mode, total price differs from quantity × unit price                      |
-| `FORMULA-001` | Error            | A cached formula result is `#REF!`, `#VALUE!`, `#DIV/0!`, or another Excel error    |
-| `FORMULA-002` | Info             | A formula has no readable cached result                                             |
-| `TEXT-001`    | Warning          | Item feature is blank                                                               |
-| `CODE-001`    | Warning          | Item code has surrounding whitespace, line breaks, or obvious full-width characters |
-| `STRUCT-001`  | Warning          | A key detail field crosses merged cells                                             |
-| `STRUCT-002`  | Info             | A detail row or key field column is hidden                                          |
-| `STRUCT-003`  | Info             | A repeated header appears in the detail region and is excluded from detail checks   |
-
-`CALC-001` uses `decimal.js` and an absolute tolerance of `0.01` yuan by default. See [docs/rules.md](docs/rules.md) for triggers, false-positive controls, and remediation.
-
-## Report formats
-
-- **CSV**: UTF-8 with BOM; one issue per row.
-- **JSON**: app version, basic file metadata, check time, mode, mapping, rule configuration, summary, and issues.
-- **XLSX**: a separate workbook containing at least Summary, Issue Details, and Rule Reference sheets. It never modifies the source workbook.
-
-## Local-only privacy
-
-- `.xlsx` content is parsed, mapped, and checked in the current page's browser memory.
-- There is no backend, database, account system, cloud storage, telemetry, analytics, or advertising.
-- No AI, LLM, DeepSeek, OpenAI, or other recognition API is called.
-- `localStorage` holds only language, theme, and rule settings—not workbook content, file names, or results.
-- Clearing the session, refreshing, or closing the page releases the in-memory workbook state.
-- Reports are generated locally only after the user requests an export.
-
-A static host may still record ordinary page-access metadata under its own policy, but BOQLint does not upload the selected workbook. See [docs/privacy.md](docs/privacy.md).
-
-## Single-file offline build
-
-Release packages include:
-
-```text
-release/boq-lint-v0.1.0.html
-release/boq-lint-v0.1.0.html.sha256
-```
-
-Download both files from a trusted release source, verify the hash, and double-click the HTML file. JavaScript, CSS, and required assets are inlined; no CDN is used. Import, checking, and report export remain local.
-
-## Local development
-
-Use Node.js 20 or later and npm.
-
-```bash
-npm ci
-npm run samples
-npm run dev
-```
-
-Quality and release commands:
-
-```bash
-npm run format:check
-npm run lint
-npm run typecheck
-npm run test
-npm run test:coverage
-npm run test:e2e
-npm run build
-npm run build:offline
-npm run package
-npm run check
-```
-
-The three files in `public/samples/` are entirely fictional and reproducible. Never contribute real project, company, client, or price data.
+`QG010` uses `decimal.js` and the default tolerance `max(CNY 0.01, |total price| × 0.1%)`. See [docs/rule-catalog.md](docs/rule-catalog.md) for the exact scope and remediation.
 
 ## Product boundaries
 
-BOQLint does not:
+- A BOQ workbook alone cannot prove whether drawings contain genuinely omitted work.
+- Item-code conventions vary by region, industry, and organization.
+- Zero or negative unit prices may have valid commercial meanings.
+- Price dispersion is a review signal, not an automatic pricing verdict.
+- BOQ Lint does not bundle standards text, rate databases, price databases, or commercial software samples.
+- BOQ Lint does not claim full conformity with GB/T 50500-2024 and does not replace professional review.
 
-- create or judge market prices;
-- determine correct schedule-of-rates use, every regional coding rule, or administrative compliance;
-- generate, replace, or automatically modify item codes;
-- modify the source workbook;
-- provide final-account audit, ERP, accounts, collaboration, or online storage;
-- produce AI audit conclusions or promise acceptance by authorities or commercial costing software; or
-- reproduce substantial standards tables, code libraries, or restricted material.
+> BOQ Lint is an auxiliary Excel data-quality checker. It is not a construction-cost audit conclusion and cannot replace drawings, contracts, measurement rules, or qualified professional review.
 
-The work context may be read alongside the Ministry of Housing and Urban-Rural Development's [announcement of the Standard for Valuation with Bill Quantity of Construction Works](https://www.mohurd.gov.cn/gongkai/zc/wjk/art/2024/art_6186304e164c4c4982904f8734983235.html). BOQLint is not affiliated with a standards publisher, interpreter, or certification body and does not certify conformance.
+## Local development
 
-> **BOQLint is a general-purpose data-quality aid. It is not construction-cost professional advice, and its results do not establish conformity with any national, industry, or local standard. Qualified professionals must still review formal deliverables.**
+Requirements:
 
-## Roadmap
+- Node.js 22
+- pnpm 10.13.1
 
-- `v0.1.x`: stabilize `.xlsx` import, bilingual UX, rule accuracy, exports, and the offline build.
-- `v0.2`: improve local template adaptation and portable alias configuration.
-- `v0.3`: evaluate two-version BOQ comparison with explainable matching and human confirmation.
+```bash
+corepack enable
+corepack prepare pnpm@10.13.1 --activate
+pnpm install --frozen-lockfile
+pnpm generate:samples
+pnpm dev
+```
 
-The roadmap is not a release-date promise. Price judgment, automated costing, AI review, and cloud project-data management are out of scope.
+Quality commands:
 
-## Contributing
+```bash
+pnpm lint
+pnpm format
+pnpm format:check
+pnpm typecheck
+pnpm test
+pnpm test:coverage
+pnpm build
+pnpm exec playwright install chromium
+pnpm test:e2e
+pnpm check
+```
 
-Contributions to header aliases, low-noise rules, accessibility, tests, and entirely fictional samples are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) first. Report security issues privately under [SECURITY.md](SECURITY.md), and never attach a real project workbook to a public issue.
+`pnpm check` runs lint, format check, typecheck, unit tests, and build in that order.
+
+## GitHub Pages
+
+Vite uses `base: './'`, so built assets use relative paths and work under a repository subdirectory. The Pages workflow uses Node.js 22, pnpm frozen installation, `actions/configure-pages`, `actions/upload-pages-artifact`, and `actions/deploy-pages`. It deploys the `dist/` artifact without committing build output or using a backend.
+
+Set the repository's Pages source to **GitHub Actions**.
+
+## Contributing and roadmap
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [SECURITY.md](SECURITY.md). Use only entirely fictional workbooks in public issues and pull requests.
+
+The v0.2.0–v0.5.0 plan, suggested repository topics, and good-first-issue ideas are in [docs/roadmap.md](docs/roadmap.md).
 
 ## License
 
-[MIT](LICENSE) © BOQLint contributors
+[MIT](LICENSE) © BOQ Lint contributors

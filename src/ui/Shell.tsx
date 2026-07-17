@@ -89,14 +89,13 @@ interface StepIndicatorProps {
   readonly messages: Messages;
 }
 
-const STEPS: readonly AppStep[] = ['import', 'mapping', 'check', 'results'];
+const STEPS: readonly AppStep[] = ['import', 'mapping', 'results'];
 
 export function StepIndicator({ activeStep, messages }: StepIndicatorProps) {
   const activeIndex = STEPS.indexOf(activeStep);
   const labels: Record<AppStep, string> = {
     import: messages.stepImport,
     mapping: messages.stepMapping,
-    check: messages.stepCheck,
     results: messages.stepResults,
   };
 

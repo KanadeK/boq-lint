@@ -11,230 +11,233 @@ export interface RuleDefinition extends RuleSetting, RuleCopy {}
 interface RuleSeed {
   readonly ruleId: string;
   readonly severity: Severity;
-  readonly core: boolean;
   readonly zh: RuleCopy;
   readonly en: RuleCopy;
 }
 
 const RULE_SEEDS: readonly RuleSeed[] = [
   {
-    ruleId: 'REQ-001',
+    ruleId: 'QG001',
     severity: 'error',
-    core: true,
     zh: {
-      name: '必需字段缺失',
-      description: '明细行缺少当前检查模式要求的字段。',
-      suggestion: '补充缺失字段，或确认表头和字段映射是否正确。',
+      name: '项目名称缺失',
+      description: '清单项目行没有项目名称。',
+      suggestion: '补充项目名称，并确认表头和字段映射是否正确。',
     },
     en: {
-      name: 'Required field missing',
-      description: 'A detail row is missing a field required by the selected mode.',
-      suggestion: 'Add the missing value or confirm the header and field mapping.',
+      name: 'Missing item name',
+      description: 'A BOQ item row has no item name.',
+      suggestion: 'Add the item name and confirm the header and field mapping.',
     },
   },
   {
-    ruleId: 'NUM-001',
+    ruleId: 'QG002',
     severity: 'error',
-    core: true,
     zh: {
-      name: '数值无效',
-      description: '工程量、综合单价或合价不是可识别的有效数值。',
-      suggestion: '改为纯数值，并移除无法识别的文字或符号。',
+      name: '计量单位缺失',
+      description: '清单项目行没有计量单位。',
+      suggestion: '依据项目计量口径补充单位，并由专业人员复核。',
     },
     en: {
-      name: 'Invalid numeric value',
-      description: 'Quantity, unit price, or total price is not a recognized number.',
-      suggestion: 'Use a numeric value and remove unrecognized text or symbols.',
+      name: 'Missing unit',
+      description: 'A BOQ item row has no measurement unit.',
+      suggestion: 'Add the unit based on the measurement basis and review it professionally.',
     },
   },
   {
-    ruleId: 'QTY-001',
-    severity: 'warning',
-    core: false,
-    zh: {
-      name: '工程量非正数',
-      description: '工程量等于零或小于零。负数在调整场景中可能有效。',
-      suggestion: '复核工程量及其业务含义，不要仅因负数自动改值。',
-    },
-    en: {
-      name: 'Non-positive quantity',
-      description: 'Quantity is zero or negative. Negative values may be valid for adjustments.',
-      suggestion: 'Review the quantity and its purpose before changing it.',
-    },
-  },
-  {
-    ruleId: 'DUP-001',
-    severity: 'warning',
-    core: false,
-    zh: {
-      name: '完全重复明细',
-      description: '同一工作表中出现字段内容完全相同的明细行。',
-      suggestion: '对照相关行，确认是否为误复制或确需保留。',
-    },
-    en: {
-      name: 'Exact duplicate detail',
-      description: 'A worksheet contains detail rows with identical mapped values.',
-      suggestion: 'Compare the related rows and confirm whether the duplicate is intentional.',
-    },
-  },
-  {
-    ruleId: 'DUP-002',
-    severity: 'warning',
-    core: false,
-    zh: {
-      name: '同编码内容冲突',
-      description: '同一项目编码对应不同名称、单位或项目特征。',
-      suggestion: '核对编码及其对应的名称、单位和特征描述。',
-    },
-    en: {
-      name: 'Conflicting values for one code',
-      description: 'The same item code has different names, units, or item features.',
-      suggestion: 'Verify the code and its related name, unit, and feature description.',
-    },
-  },
-  {
-    ruleId: 'UNIT-001',
-    severity: 'warning',
-    core: false,
-    zh: {
-      name: '计量单位冲突',
-      description: '同一编码或标准化项目名称出现不同计量单位。',
-      suggestion: '核对计量口径，确认单位差异是否合理。',
-    },
-    en: {
-      name: 'Unit conflict',
-      description: 'The same code or normalized item name uses different units.',
-      suggestion: 'Review the measurement basis and confirm whether the unit difference is valid.',
-    },
-  },
-  {
-    ruleId: 'CALC-001',
+    ruleId: 'QG003',
     severity: 'error',
-    core: false,
+    zh: {
+      name: '工程量无效',
+      description: '工程量不是有限数值或小于零；零工程量由 QG004 单独提示。',
+      suggestion: '核对工程量原值、公式结果和业务含义，改为可识别的非负数值。',
+    },
+    en: {
+      name: 'Invalid quantity',
+      description: 'Quantity is not finite or is below zero. Zero quantity is handled by QG004.',
+      suggestion:
+        'Review the source value, formula result, and business meaning, then use a valid non-negative number.',
+    },
+  },
+  {
+    ruleId: 'QG004',
+    severity: 'warning',
+    zh: {
+      name: '零工程量',
+      description: '清单项目的工程量等于零。',
+      suggestion: '确认该项目是否应保留，以及工程量是否尚未填写或确实为零。',
+    },
+    en: {
+      name: 'Zero quantity',
+      description: 'A BOQ item has a quantity of zero.',
+      suggestion:
+        'Confirm whether the item should remain and whether the quantity is pending or intentionally zero.',
+    },
+  },
+  {
+    ruleId: 'QG005',
+    severity: 'warning',
+    zh: {
+      name: '项目编码缺失',
+      description: '清单项目行没有项目编码；补充项目和企业模板可能采用不同做法。',
+      suggestion: '结合地区、行业和企业模板人工确认是否需要补充编码。',
+    },
+    en: {
+      name: 'Missing item code',
+      description: 'A BOQ item has no code. Supplementary items and company templates may differ.',
+      suggestion:
+        'Confirm whether a code is required for the applicable regional, industry, or company template.',
+    },
+  },
+  {
+    ruleId: 'QG006',
+    severity: 'info',
+    zh: {
+      name: '编码格式可疑',
+      description: '编码去除空格后不是常见的 12 位数字格式；其他地区、行业或企业格式也可能有效。',
+      suggestion: '按本项目适用的编码规则人工复核，不要仅凭此提示自动改值。',
+    },
+    en: {
+      name: 'Unusual code format',
+      description:
+        'The code is not the common 12-digit format after spaces are removed. Other formats may still be valid.',
+      suggestion:
+        'Review it against the project-specific coding rules instead of changing it automatically.',
+    },
+  },
+  {
+    ruleId: 'QG007',
+    severity: 'warning',
+    zh: {
+      name: '重复项目编码',
+      description: '同一工作表内有多个清单项目使用相同的非空编码。',
+      suggestion: '对照提示中的全部相关行，确认是重复编码还是允许的拆分列项。',
+    },
+    en: {
+      name: 'Duplicate item code',
+      description: 'Multiple BOQ items in one worksheet use the same non-empty code.',
+      suggestion:
+        'Review every related row and confirm whether it is a duplicate or an intentional split item.',
+    },
+  },
+  {
+    ruleId: 'QG008',
+    severity: 'warning',
+    zh: {
+      name: '疑似重复清单项',
+      description: '规范化项目名称、项目特征和单位组成的指纹完全相同。',
+      suggestion: '人工复核相关行；此提示不会自动认定为重复列项。',
+    },
+    en: {
+      name: 'Possible duplicate BOQ item',
+      description: 'The normalized item name, feature, and unit fingerprint is identical.',
+      suggestion:
+        'Review the related rows manually. This notice does not automatically classify them as duplicates.',
+    },
+  },
+  {
+    ruleId: 'QG009',
+    severity: 'warning',
+    zh: {
+      name: '项目特征描述不足',
+      description: '项目特征为空、去除空白和标点后过短，或主要是“详见图纸、同上”等占位表达。',
+      suggestion: '依据项目实际内容补充可供计量和复核的特征描述。',
+    },
+    en: {
+      name: 'Insufficient item feature',
+      description:
+        'The feature is empty, too short after normalization, or mainly contains a placeholder such as “see drawings”.',
+      suggestion: 'Add a feature description suitable for measurement and professional review.',
+    },
+  },
+  {
+    ruleId: 'QG010',
+    severity: 'error',
     zh: {
       name: '合价计算不一致',
-      description: '合价与工程量乘综合单价的两位小数结果超出允许误差。',
-      suggestion: '复核数量、单价、合价和公式，并确认舍入规则。',
+      description: '合价与工程量乘综合单价的 Decimal 精确计算结果超出允许误差。',
+      suggestion: '复核工程量、综合单价、合价、公式和项目采用的舍入规则。',
     },
     en: {
       name: 'Total calculation mismatch',
-      description: 'The total differs from quantity multiplied by unit price beyond the tolerance.',
-      suggestion: 'Review quantity, unit price, total, formulas, and rounding rules.',
+      description:
+        'The total differs from the Decimal calculation of quantity multiplied by unit price beyond the allowed tolerance.',
+      suggestion: 'Review quantity, unit price, total, formulas, and the project rounding rules.',
     },
   },
   {
-    ruleId: 'FORMULA-001',
-    severity: 'error',
-    core: false,
+    ruleId: 'QG011',
+    severity: 'warning',
     zh: {
-      name: '公式结果错误',
-      description: '公式缓存结果包含引用、数值、除零或名称等错误。',
-      suggestion: '在表格软件中修复公式引用或参与计算的数据。',
+      name: '单价异常',
+      description: '综合单价小于或等于零；赠送项、抵扣项或暂不计价项可能具有业务含义。',
+      suggestion: '结合合同和计价口径人工复核，不要仅因零价或负价自动修改。',
     },
     en: {
-      name: 'Formula result error',
-      description: 'A cached formula result contains a reference, value, division, or name error.',
-      suggestion: 'Repair the formula reference or source data in a spreadsheet app.',
+      name: 'Unusual unit price',
+      description:
+        'Unit price is zero or negative. Free, offset, or temporarily unpriced items may be intentional.',
+      suggestion:
+        'Review it against the contract and pricing basis instead of changing it automatically.',
     },
   },
   {
-    ruleId: 'FORMULA-002',
+    ruleId: 'QG012',
     severity: 'info',
-    core: false,
     zh: {
-      name: '公式无缓存结果',
-      description: '单元格包含公式，但浏览器无法读取其缓存结果。',
-      suggestion: '用表格软件重新计算并保存工作簿后再检查。',
+      name: '同类项目单价离散',
+      description: '同一规范化名称和单位至少有 4 项，且某项单价偏离非零中位数超过设定比例。',
+      suggestion: '核对项目特征、工作内容、价格来源和是否存在合理差异。',
+    },
+    en: {
+      name: 'Price dispersion among similar items',
+      description:
+        'At least four items share a normalized name and unit, and one price differs from the non-zero median beyond the configured ratio.',
+      suggestion:
+        'Review item features, work scope, price sources, and whether the difference is justified.',
+    },
+  },
+  {
+    ruleId: 'QG013',
+    severity: 'warning',
+    zh: {
+      name: '公式缺少缓存结果',
+      description: 'Excel 单元格包含公式，但没有可供浏览器读取的缓存结果。',
+      suggestion: '使用 Excel 或 WPS 重新计算并保存工作簿后再次检查。',
     },
     en: {
       name: 'Formula has no cached result',
-      description: 'A cell contains a formula but its cached result cannot be read in the browser.',
-      suggestion: 'Recalculate and save the workbook in a spreadsheet app, then check again.',
+      description:
+        'An Excel cell contains a formula but no cached result is available to the browser.',
+      suggestion: 'Recalculate and save the workbook in Excel or WPS, then check it again.',
     },
   },
   {
-    ruleId: 'TEXT-001',
-    severity: 'warning',
-    core: false,
-    zh: {
-      name: '项目特征为空',
-      description: '明细行未填写项目特征。',
-      suggestion: '按项目实际内容补充特征描述，或确认该项是否确实不适用。',
-    },
-    en: {
-      name: 'Item feature is empty',
-      description: 'A detail row does not include an item feature description.',
-      suggestion: 'Add an appropriate feature description or confirm that it is not applicable.',
-    },
-  },
-  {
-    ruleId: 'CODE-001',
-    severity: 'warning',
-    core: false,
-    zh: {
-      name: '项目编码格式异常',
-      description: '编码包含首尾空格、换行或明显的全角字符。',
-      suggestion: '人工核对并规范编码格式，不会自动修改原值。',
-    },
-    en: {
-      name: 'Unusual item code format',
-      description: 'The code includes outer spaces, line breaks, or obvious full-width characters.',
-      suggestion: 'Review and normalize the code manually. The original value is never changed.',
-    },
-  },
-  {
-    ruleId: 'STRUCT-001',
-    severity: 'warning',
-    core: false,
-    zh: {
-      name: '关键字段跨合并单元格',
-      description: '明细数据的关键字段位于合并单元格中。',
-      suggestion: '取消明细区域的关键字段合并，并为每行保留明确值。',
-    },
-    en: {
-      name: 'Key field uses merged cells',
-      description: 'A key field in a detail row crosses merged cells.',
-      suggestion: 'Unmerge key fields in the detail area and keep an explicit value on each row.',
-    },
-  },
-  {
-    ruleId: 'STRUCT-002',
+    ruleId: 'QG014',
     severity: 'info',
-    core: false,
     zh: {
-      name: '隐藏明细行或关键列',
-      description: '工作表包含隐藏的明细行或关键字段列。',
-      suggestion: '取消隐藏后复核，确认隐藏内容是否应纳入交付。',
+      name: '导入结构风险',
+      description: '项目数据区域存在隐藏行、隐藏列或可能影响字段读取的合并单元格。',
+      suggestion: '取消隐藏或合并后复核数据区域；普通表头合并不代表问题。',
     },
     en: {
-      name: 'Hidden detail row or key column',
-      description: 'The worksheet contains a hidden detail row or key-field column.',
-      suggestion: 'Unhide and review the content to confirm whether it belongs in the delivery.',
-    },
-  },
-  {
-    ruleId: 'STRUCT-003',
-    severity: 'info',
-    core: false,
-    zh: {
-      name: '明细区域重复表头',
-      description: '明细区域发现重复表头，该行已从普通明细检查中排除。',
-      suggestion: '确认分页或拼接产生的重复表头是否需要清理。',
-    },
-    en: {
-      name: 'Repeated header in detail area',
-      description: 'A repeated header was found and excluded from normal detail checks.',
-      suggestion: 'Review repeated headers created by pagination or worksheet concatenation.',
+      name: 'Import structure risk',
+      description:
+        'The item data region contains hidden rows, hidden columns, or merged cells that may affect field reading.',
+      suggestion:
+        'Review the data region after unhiding or unmerging it. Ordinary merged headers are not inherently an issue.',
     },
   },
 ];
 
 export const DEFAULT_RULE_CONFIG: UiRuleConfig = {
   calcTolerance: '0.01',
-  rules: RULE_SEEDS.map(({ ruleId, severity, core }) => ({
+  relativeTolerance: '0.001',
+  dispersionRatio: '0.5',
+  featureMinLength: 6,
+  rules: RULE_SEEDS.map(({ ruleId, severity }) => ({
     ruleId,
     severity,
-    core,
     enabled: true,
   })),
 };
@@ -247,43 +250,7 @@ export function getRuleDefinitions(
   return RULE_SEEDS.map((seed) => ({
     ruleId: seed.ruleId,
     severity: seed.severity,
-    core: seed.core,
     enabled: byId.get(seed.ruleId)?.enabled ?? true,
     ...(locale === 'zh-CN' ? seed.zh : seed.en),
   }));
-}
-
-export function parseRuleConfig(value: unknown): UiRuleConfig | null {
-  if (typeof value !== 'object' || value === null) return null;
-  const candidate = value as Record<string, unknown>;
-  if (typeof candidate.calcTolerance !== 'string') return null;
-  const tolerance = Number(candidate.calcTolerance);
-  if (!Number.isFinite(tolerance) || tolerance < 0) return null;
-  if (!Array.isArray(candidate.rules)) return null;
-
-  const incoming = new Map<string, boolean>();
-  for (const valueRule of candidate.rules) {
-    if (typeof valueRule !== 'object' || valueRule === null) return null;
-    const record = valueRule as Record<string, unknown>;
-    if (typeof record.ruleId !== 'string' || typeof record.enabled !== 'boolean') return null;
-    incoming.set(record.ruleId, record.enabled);
-  }
-
-  const rules = DEFAULT_RULE_CONFIG.rules.map((rule) => ({
-    ...rule,
-    enabled: rule.core ? true : (incoming.get(rule.ruleId) ?? rule.enabled),
-  }));
-  return { calcTolerance: candidate.calcTolerance, rules };
-}
-
-export function serializeRuleConfig(config: UiRuleConfig): string {
-  return JSON.stringify(
-    {
-      version: 1,
-      calcTolerance: config.calcTolerance,
-      rules: config.rules.map(({ ruleId, enabled }) => ({ ruleId, enabled })),
-    },
-    null,
-    2,
-  );
 }

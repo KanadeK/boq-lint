@@ -4,7 +4,6 @@ import {
   CheckCircle,
   DownloadSimple,
   Info,
-  LockKey,
   UploadSimple,
   WarningCircle,
   X,
@@ -21,11 +20,28 @@ interface SettingsDrawerProps {
   readonly status: 'imported' | 'restored' | null;
   readonly error: boolean;
   readonly onClose: () => void;
-  readonly onToleranceChange: (value: string) => void;
+  readonly onThresholdChange: (
+    field: 'calcTolerance' | 'relativeTolerance' | 'dispersionRatio' | 'featureMinLength',
+    value: string,
+  ) => void;
   readonly onRuleToggle: (ruleId: string, enabled: boolean) => void;
-  readonly onRestore: () => string;
-  readonly onImport: (text: string) => string | null;
+  readonly onRestore: () => UiRuleConfig;
+  readonly onImport: (text: string) => UiRuleConfig | null;
   readonly onExport: () => void;
+}
+
+type ThresholdField =
+  'calcTolerance' | 'relativeTolerance' | 'dispersionRatio' | 'featureMinLength';
+
+type ThresholdDrafts = Readonly<Record<ThresholdField, string>>;
+
+function thresholdDrafts(config: UiRuleConfig): ThresholdDrafts {
+  return {
+    calcTolerance: config.calcTolerance,
+    relativeTolerance: config.relativeTolerance,
+    dispersionRatio: config.dispersionRatio,
+    featureMinLength: String(config.featureMinLength),
+  };
 }
 
 export function SettingsDrawer({
@@ -36,7 +52,7 @@ export function SettingsDrawer({
   status,
   error,
   onClose,
-  onToleranceChange,
+  onThresholdChange,
   onRuleToggle,
   onRestore,
   onImport,
@@ -44,7 +60,7 @@ export function SettingsDrawer({
 }: SettingsDrawerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
-  const [toleranceDraft, setToleranceDraft] = useState(config.calcTolerance);
+  const [drafts, setDrafts] = useState<ThresholdDrafts>(() => thresholdDrafts(config));
   const rules = getRuleDefinitions(locale, config);
 
   useEffect(() => {
@@ -85,11 +101,31 @@ export function SettingsDrawer({
     event.target.value = '';
     if (!file) return;
     try {
-      const importedTolerance = onImport(await file.text());
-      if (importedTolerance !== null) setToleranceDraft(importedTolerance);
+      const imported = onImport(await file.text());
+      if (imported !== null) setDrafts(thresholdDrafts(imported));
     } catch {
       onImport('');
     }
+  };
+
+  const updateDraft = (field: ThresholdField, value: string) => {
+    setDrafts((current) => ({ ...current, [field]: value }));
+  };
+
+  const commitDraft = (field: ThresholdField) => {
+    const value = drafts[field];
+    const numeric = Number(value);
+    const invalid =
+      value.trim() !== value ||
+      value.length === 0 ||
+      !Number.isFinite(numeric) ||
+      numeric < 0 ||
+      (field === 'featureMinLength' && (!Number.isInteger(numeric) || numeric < 1));
+    if (invalid) {
+      setDrafts(thresholdDrafts(config));
+      return;
+    }
+    onThresholdChange(field, value);
   };
 
   return (
@@ -133,27 +169,69 @@ export function SettingsDrawer({
                   min="0"
                   step="0.01"
                   inputMode="decimal"
-                  value={toleranceDraft}
-                  onChange={(event) => setToleranceDraft(event.target.value)}
-                  onBlur={() => {
-                    const numeric = Number(toleranceDraft);
-                    if (
-                      toleranceDraft.trim() !== toleranceDraft ||
-                      toleranceDraft.length === 0 ||
-                      !Number.isFinite(numeric) ||
-                      numeric < 0
-                    ) {
-                      setToleranceDraft(config.calcTolerance);
-                    } else {
-                      onToleranceChange(toleranceDraft);
-                    }
-                  }}
+                  value={drafts.calcTolerance}
+                  onChange={(event) => updateDraft('calcTolerance', event.target.value)}
+                  onBlur={() => commitDraft('calcTolerance')}
                   aria-describedby="tolerance-hint"
                   data-testid="calc-tolerance"
                 />
                 <span>{messages.toleranceUnit}</span>
               </span>
               <small id="tolerance-hint">{messages.toleranceHint}</small>
+            </label>
+            <label className="field-control tolerance-control">
+              <span>{messages.relativeToleranceLabel}</span>
+              <span className="input-with-suffix">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  inputMode="decimal"
+                  value={drafts.relativeTolerance}
+                  onChange={(event) => updateDraft('relativeTolerance', event.target.value)}
+                  onBlur={() => commitDraft('relativeTolerance')}
+                  aria-describedby="relative-tolerance-hint"
+                  data-testid="relative-tolerance"
+                />
+                <span>{messages.ratioUnit}</span>
+              </span>
+              <small id="relative-tolerance-hint">{messages.relativeToleranceHint}</small>
+            </label>
+            <label className="field-control tolerance-control">
+              <span>{messages.dispersionRatioLabel}</span>
+              <span className="input-with-suffix">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.05"
+                  inputMode="decimal"
+                  value={drafts.dispersionRatio}
+                  onChange={(event) => updateDraft('dispersionRatio', event.target.value)}
+                  onBlur={() => commitDraft('dispersionRatio')}
+                  aria-describedby="dispersion-ratio-hint"
+                  data-testid="dispersion-ratio"
+                />
+                <span>{messages.ratioUnit}</span>
+              </span>
+              <small id="dispersion-ratio-hint">{messages.dispersionRatioHint}</small>
+            </label>
+            <label className="field-control tolerance-control">
+              <span>{messages.featureMinLengthLabel}</span>
+              <span className="input-with-suffix">
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  inputMode="numeric"
+                  value={drafts.featureMinLength}
+                  onChange={(event) => updateDraft('featureMinLength', event.target.value)}
+                  onBlur={() => commitDraft('featureMinLength')}
+                  aria-describedby="feature-min-length-hint"
+                  data-testid="feature-min-length"
+                />
+                <span>{messages.characterUnit}</span>
+              </span>
+              <small id="feature-min-length-hint">{messages.featureMinLengthHint}</small>
             </label>
           </section>
 
@@ -171,20 +249,18 @@ export function SettingsDrawer({
                     <span className={`severity-badge severity-${rule.severity}`}>
                       <code>{rule.ruleId}</code>
                     </span>
-                    <label className={`switch-control${rule.core ? ' is-locked' : ''}`}>
+                    <label className="switch-control">
                       <input
                         type="checkbox"
                         checked={rule.enabled}
-                        disabled={rule.core}
-                        aria-label={`${rule.ruleId} ${rule.name}: ${rule.core ? messages.coreRule : messages.ruleEnabled}`}
+                        aria-label={`${rule.ruleId} ${rule.name}: ${messages.ruleEnabled}`}
                         onChange={(event) => onRuleToggle(rule.ruleId, event.target.checked)}
                         data-testid={`rule-toggle-${rule.ruleId}`}
                       />
                       <span className="switch-track" aria-hidden="true">
                         <span />
                       </span>
-                      <span>{rule.core ? messages.coreRule : messages.ruleEnabled}</span>
-                      {rule.core && <LockKey size={14} aria-hidden="true" />}
+                      <span>{messages.ruleEnabled}</span>
                     </label>
                   </div>
                   <h4>{rule.name}</h4>
@@ -230,7 +306,7 @@ export function SettingsDrawer({
               <button
                 type="button"
                 className="button button-quiet"
-                onClick={() => setToleranceDraft(onRestore())}
+                onClick={() => setDrafts(thresholdDrafts(onRestore()))}
                 data-testid="restore-defaults"
               >
                 <ArrowCounterClockwise size={18} aria-hidden="true" />

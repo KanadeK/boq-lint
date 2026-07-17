@@ -229,6 +229,14 @@ export function ImportStep({
                   </dd>
                 </div>
               </dl>
+              <div className="worksheet-list">
+                <strong>{messages.worksheet}</strong>
+                <ul>
+                  {fileSummary.sheetNames.map((sheetName) => (
+                    <li key={sheetName}>{sheetName}</li>
+                  ))}
+                </ul>
+              </div>
               <div className="file-card-actions">
                 <button
                   type="button"

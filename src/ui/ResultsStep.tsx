@@ -12,11 +12,10 @@ import {
   FileXls,
   Funnel,
   Info,
-  ListChecks,
   MagnifyingGlass,
   Rows,
+  SlidersHorizontal,
   Table,
-  Timer,
   Warning,
   WarningOctagon,
   X,
@@ -34,19 +33,13 @@ interface ResultsStepProps {
   readonly onBack: () => void;
   readonly onRecheck: () => void;
   readonly onNewFile: () => void;
+  readonly onOpenSettings: () => void;
 }
 
 function SeverityMark({ severity }: { readonly severity: Severity }) {
   if (severity === 'error') return <WarningOctagon size={17} weight="fill" aria-hidden="true" />;
   if (severity === 'warning') return <Warning size={17} weight="fill" aria-hidden="true" />;
   return <Info size={17} weight="fill" aria-hidden="true" />;
-}
-
-function formatDuration(milliseconds: number, messages: Messages): string {
-  if (milliseconds < 1000) {
-    return formatMessage(messages, 'milliseconds', { value: Math.round(milliseconds) });
-  }
-  return formatMessage(messages, 'seconds', { value: (milliseconds / 1000).toFixed(2) });
 }
 
 function IssueContext({
@@ -183,6 +176,7 @@ export function ResultsStep({
   onBack,
   onRecheck,
   onNewFile,
+  onOpenSettings,
 }: ResultsStepProps) {
   const [severity, setSeverity] = useState<'all' | Severity>('all');
   const [ruleId, setRuleId] = useState('all');
@@ -245,27 +239,38 @@ export function ResultsStep({
           <h1 id="result-title">{messages.resultTitle}</h1>
           <p>{messages.resultIntro}</p>
         </div>
-        <time className="checked-time" dateTime={result.checkedAt}>
-          {new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
-            new Date(result.checkedAt),
-          )}
-        </time>
+        <div className="results-heading-actions">
+          <time className="checked-time" dateTime={result.checkedAt}>
+            {new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
+              new Date(result.checkedAt),
+            )}
+          </time>
+          <button
+            type="button"
+            className="button button-secondary"
+            onClick={onOpenSettings}
+            data-testid="result-rule-settings"
+          >
+            <SlidersHorizontal size={18} aria-hidden="true" />
+            {messages.settingsTitle}
+          </button>
+        </div>
       </div>
 
       <div className="summary-grid" aria-label={messages.resultTitle}>
-        <div className="summary-item neutral" data-testid="summary-total-rows">
-          <Rows size={21} aria-hidden="true" />
-          <span>{messages.totalRows}</span>
-          <strong>{numberFormatter.format(result.summary.totalRows)}</strong>
-        </div>
         <div className="summary-item neutral" data-testid="summary-sheets">
           <Table size={21} aria-hidden="true" />
           <span>{messages.sheetsChecked}</span>
           <strong>{numberFormatter.format(result.summary.sheetsChecked)}</strong>
         </div>
+        <div className="summary-item neutral" data-testid="summary-total-rows">
+          <Rows size={21} aria-hidden="true" />
+          <span>{messages.totalRows}</span>
+          <strong>{numberFormatter.format(result.summary.totalRows)}</strong>
+        </div>
         <div className="summary-item error" data-testid="summary-errors">
           <WarningOctagon size={21} weight="fill" aria-hidden="true" />
-          <span>{messages.errors}</span>
+          <span>{messages.severeIssues}</span>
           <strong data-testid="error-count">{numberFormatter.format(result.summary.errors)}</strong>
         </div>
         <div className="summary-item warning" data-testid="summary-warnings">
@@ -279,16 +284,6 @@ export function ResultsStep({
           <Info size={21} weight="fill" aria-hidden="true" />
           <span>{messages.infos}</span>
           <strong data-testid="info-count">{numberFormatter.format(result.summary.infos)}</strong>
-        </div>
-        <div className="summary-item success" data-testid="summary-passed-rules">
-          <ListChecks size={21} aria-hidden="true" />
-          <span>{messages.passedRules}</span>
-          <strong>{numberFormatter.format(result.summary.passedRules)}</strong>
-        </div>
-        <div className="summary-item neutral" data-testid="summary-duration">
-          <Timer size={21} aria-hidden="true" />
-          <span>{messages.duration}</span>
-          <strong>{formatDuration(result.summary.durationMs, messages)}</strong>
         </div>
       </div>
 

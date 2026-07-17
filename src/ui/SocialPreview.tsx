@@ -75,7 +75,7 @@ export function SocialPreview({ messages }: { readonly messages: Messages }) {
               <WarningOctagon size={15} weight="fill" />
               {messages.errors}
             </span>
-            <code>CALC-001</code>
+            <code>QG010</code>
             <strong>18</strong>
             <span>{messages.field_total_price}</span>
           </div>
@@ -84,7 +84,7 @@ export function SocialPreview({ messages }: { readonly messages: Messages }) {
               <Warning size={15} weight="fill" />
               {messages.warnings}
             </span>
-            <code>UNIT-001</code>
+            <code>QG009</code>
             <strong>24</strong>
             <span>{messages.field_unit}</span>
           </div>
@@ -93,7 +93,7 @@ export function SocialPreview({ messages }: { readonly messages: Messages }) {
               <Info size={15} weight="fill" />
               {messages.infos}
             </span>
-            <code>STRUCT-003</code>
+            <code>QG014</code>
             <strong>31</strong>
             <span>{messages.headerDetected}</span>
           </div>

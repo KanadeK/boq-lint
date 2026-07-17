@@ -700,6 +700,22 @@ code,
   background: var(--surface-muted);
 }
 
+.inline-check-status {
+  display: grid;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  gap: 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.inline-check-status > span {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
 .loading-bar > span,
 .progress-fill {
   display: block;
@@ -781,6 +797,38 @@ code,
 
 .file-card-actions {
   justify-content: space-between;
+}
+
+.worksheet-list {
+  display: grid;
+  margin: -5px 0 20px;
+  gap: 8px;
+}
+
+.worksheet-list > strong {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+}
+
+.worksheet-list ul {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+  gap: 7px;
+  list-style: none;
+}
+
+.worksheet-list li {
+  max-width: 100%;
+  padding: 5px 9px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--success) 24%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .import-aside {
@@ -1302,9 +1350,16 @@ tbody tr:hover > * {
   align-items: center;
 }
 
+.results-heading-actions {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 9px;
+}
+
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   margin-bottom: 16px;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -1671,8 +1726,14 @@ tbody tr:hover > * {
   border-bottom: 1px solid var(--line);
 }
 
+.tolerance-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+}
+
 .tolerance-control {
-  max-width: 320px;
+  min-width: 0;
 }
 
 .input-with-suffix {
@@ -2134,18 +2195,6 @@ tbody tr:hover > * {
 }
 
 @media (max-width: 1180px) {
-  .summary-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .summary-item:nth-child(4) {
-    border-right: 0;
-  }
-
-  .summary-item:nth-child(-n + 4) {
-    border-bottom: 1px solid var(--line);
-  }
-
   .field-mapping-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2371,6 +2420,10 @@ tbody tr:hover > * {
 }
 
 @media (max-width: 480px) {
+  .tolerance-section {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .header-inner,
   .app-main,
   .footer-inner {

@@ -4,7 +4,7 @@ export type ThemePreference = 'auto' | 'light' | 'dark';
 
 export type CheckMode = 'unpriced' | 'priced';
 
-export type AppStep = 'import' | 'mapping' | 'check' | 'results';
+export type AppStep = 'import' | 'mapping' | 'results';
 
 export type Severity = 'error' | 'warning' | 'info';
 
@@ -23,6 +23,7 @@ export interface FileSummary {
   readonly name: string;
   readonly size: number;
   readonly sheetCount: number;
+  readonly sheetNames: readonly string[];
   readonly source: 'file' | 'sample';
 }
 
@@ -98,12 +99,14 @@ export interface UiResult {
 export interface RuleSetting {
   readonly ruleId: string;
   readonly severity: Severity;
-  readonly core: boolean;
   readonly enabled: boolean;
 }
 
 export interface UiRuleConfig {
   readonly calcTolerance: string;
+  readonly relativeTolerance: string;
+  readonly dispersionRatio: string;
+  readonly featureMinLength: number;
   readonly rules: readonly RuleSetting[];
 }
 

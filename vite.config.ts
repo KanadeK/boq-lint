@@ -1,8 +1,8 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
-export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/boq-lint/' : '/',
+export default defineConfig({
+  base: './',
   plugins: [react()],
   define: {
     __APP_VERSION__: JSON.stringify('0.1.0'),
@@ -33,4 +33,4 @@ export default defineConfig(({ command }) => ({
       },
     },
   },
-}));
+});

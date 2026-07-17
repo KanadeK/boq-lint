@@ -14,6 +14,8 @@ import { BoqLintError } from './types';
 
 type WorkbookInput = Blob | ArrayBuffer | Uint8Array;
 
+export const MAX_XLSX_FILE_SIZE = 20 * 1024 * 1024;
+
 function emitProgress(
   callback: ProgressCallback | undefined,
   event: Omit<ProgressEvent, 'percent'>,
@@ -52,7 +54,9 @@ function startsWith(bytes: Uint8Array, signature: readonly number[]): boolean {
 
 function validateContainer(bytes: Uint8Array, fileName: string): void {
   if (/\.xls$/iu.test(fileName)) throw new BoqLintError('UNSUPPORTED_XLS');
+  if (!/\.xlsx$/iu.test(fileName)) throw new BoqLintError('UNSUPPORTED_FORMAT');
   if (bytes.byteLength === 0) throw new BoqLintError('EMPTY_FILE');
+  if (bytes.byteLength > MAX_XLSX_FILE_SIZE) throw new BoqLintError('FILE_TOO_LARGE');
 
   const oleSignature = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
   if (startsWith(bytes, oleSignature)) {

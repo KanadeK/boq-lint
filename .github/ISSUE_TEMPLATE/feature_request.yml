@@ -1,5 +1,5 @@
 name: Feature request / 功能建议
-description: Propose a focused improvement within BOQLint's local data-quality scope.
+description: Propose a focused improvement within BOQ Lint's local data-quality scope.
 title: '[Feature] '
 labels:
   - enhancement
@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        BOQLint is a local `.xlsx` data-quality checker. It does not provide cloud upload, accounts, AI review, market-price judgment, automatic costing/coding, ERP, or final-account audit. Use only fictional examples.
+        BOQ Lint is a local `.xlsx` data-quality checker. It does not provide cloud upload, accounts, AI review, market-price judgment, automatic costing/coding, ERP, or final-account audit. Use only fictional examples.
 
   - type: textarea
     id: problem

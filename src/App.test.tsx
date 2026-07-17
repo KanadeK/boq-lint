@@ -19,12 +19,12 @@ const matchMedia = vi.fn().mockImplementation((query: string) => ({
 
 function fakeIssue(index: number): UiIssue {
   const severities = ['error', 'warning', 'info'] as const;
-  const ruleIds = ['REQ-001', 'CALC-001', 'STRUCT-003'] as const;
+  const ruleIds = ['QG001', 'QG010', 'QG014'] as const;
   const rowNumber = index + 2;
   return {
     id: `issue-${index}`,
     severity: severities[index % severities.length] ?? 'error',
-    ruleId: ruleIds[index % ruleIds.length] ?? 'REQ-001',
+    ruleId: ruleIds[index % ruleIds.length] ?? 'QG001',
     sheetName: index % 2 === 0 ? '分部分项' : '措施项目',
     rowNumber,
     field: index % 2 === 0 ? 'item_code' : 'total_price',
@@ -76,22 +76,23 @@ beforeEach(() => {
 });
 
 describe('App', () => {
-  it('呈现四步式、本地处理的双模式导入首页', () => {
+  it('呈现三步式、本地处理的双模式导入首页', () => {
     render(<App />);
 
     expect(screen.getByRole('heading', { name: '交付前，先把清单查一遍' })).toBeInTheDocument();
     expect(screen.getByTestId('privacy-message')).toHaveTextContent(
       '文件仅在本机浏览器中处理，不会上传',
     );
-    expect(screen.getByText(/不生成价格，不修改原工作簿，不替代造价工程师/)).toBeInTheDocument();
+    expect(screen.getByText(/仅用于工程量清单 Excel 数据质量辅助检查/)).toBeInTheDocument();
     expect(screen.getByTestId('mode-unpriced')).toBeChecked();
     expect(screen.getByTestId('mode-priced')).not.toBeChecked();
     expect(screen.getByTestId('sample-valid')).toBeEnabled();
     expect(screen.getByTestId('sample-issues')).toBeEnabled();
 
-    for (const step of ['import', 'mapping', 'check', 'results']) {
+    for (const step of ['import', 'mapping', 'results']) {
       expect(screen.getByTestId(`step-${step}`)).toBeInTheDocument();
     }
+    expect(screen.queryByTestId('step-check')).not.toBeInTheDocument();
   });
 
   it('用可理解的中文拒绝旧版和非 xlsx 文件', async () => {
@@ -129,7 +130,7 @@ describe('App', () => {
     expect(window.localStorage.getItem('boq-lint:locale')).toBe('en');
   });
 
-  it('规则设置锁定核心规则、保存有效误差并可恢复默认值', async () => {
+  it('14 条 QG 规则均可关闭，并保存有效误差及恢复默认值', async () => {
     const user = userEvent.setup();
     render(<App />);
     const settingsButton = screen.getByTestId('settings-button');
@@ -137,11 +138,18 @@ describe('App', () => {
     await user.click(settingsButton);
     const drawer = screen.getByTestId('settings-drawer');
     expect(within(drawer).getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByTestId('rule-toggle-REQ-001')).toBeDisabled();
-    expect(screen.getByTestId('rule-toggle-QTY-001')).toBeChecked();
+    expect(screen.getAllByTestId(/^rule-toggle-QG\d{3}$/u)).toHaveLength(14);
+    expect(screen.getByTestId('rule-toggle-QG001')).toBeEnabled();
+    expect(screen.getByTestId('rule-toggle-QG001')).toBeChecked();
 
-    await user.click(screen.getByTestId('rule-toggle-QTY-001'));
-    expect(screen.getByTestId('rule-toggle-QTY-001')).not.toBeChecked();
+    await user.click(screen.getByTestId('rule-toggle-QG001'));
+    expect(screen.getByTestId('rule-toggle-QG001')).not.toBeChecked();
+    await waitFor(() => {
+      const saved = JSON.parse(window.localStorage.getItem('boq-lint:rule-config:v1') ?? '{}') as {
+        rules?: Record<string, { enabled?: boolean }>;
+      };
+      expect(saved.rules?.QG001?.enabled).toBe(false);
+    });
 
     const tolerance = screen.getByTestId('calc-tolerance');
     await user.clear(tolerance);
@@ -156,7 +164,7 @@ describe('App', () => {
 
     await user.click(screen.getByTestId('restore-defaults'));
     expect(screen.getByTestId('calc-tolerance')).toHaveValue(0.01);
-    expect(screen.getByTestId('rule-toggle-QTY-001')).toBeChecked();
+    expect(screen.getByTestId('rule-toggle-QG001')).toBeChecked();
 
     await user.keyboard('{Escape}');
     expect(screen.queryByTestId('settings-drawer')).not.toBeInTheDocument();
@@ -237,6 +245,7 @@ describe('ResultsStep', () => {
   it('支持严重程度、规则、工作表、搜索、分页和原始行上下文', async () => {
     const user = userEvent.setup();
     const onExport = vi.fn();
+    const onOpenSettings = vi.fn();
     render(
       <ResultsStep
         locale="zh-CN"
@@ -248,8 +257,12 @@ describe('ResultsStep', () => {
         onBack={vi.fn()}
         onRecheck={vi.fn()}
         onNewFile={vi.fn()}
+        onOpenSettings={onOpenSettings}
       />,
     );
+
+    await user.click(screen.getByTestId('result-rule-settings'));
+    expect(onOpenSettings).toHaveBeenCalledOnce();
 
     expect(screen.getAllByTestId(/^issue-row-/u)).toHaveLength(25);
     expect(screen.getByText('第 1 页，共 2 页')).toBeInTheDocument();
@@ -258,7 +271,7 @@ describe('ResultsStep', () => {
     expect(screen.getAllByTestId(/^issue-row-/u)).toHaveLength(10);
     expect(screen.getAllByText('错误').length).toBeGreaterThan(0);
 
-    await user.selectOptions(screen.getByTestId('rule-filter'), 'CALC-001');
+    await user.selectOptions(screen.getByTestId('rule-filter'), 'QG010');
     expect(screen.queryAllByTestId(/^issue-row-/u)).toHaveLength(0);
     expect(screen.getByTestId('no-filtered-results')).toBeInTheDocument();
 
@@ -299,6 +312,7 @@ describe('ResultsStep', () => {
         onBack={vi.fn()}
         onRecheck={vi.fn()}
         onNewFile={vi.fn()}
+        onOpenSettings={vi.fn()}
       />,
     );
 

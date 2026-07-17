@@ -1,171 +1,188 @@
-# BOQLint / 清单体检
+# BOQ Lint / 清单校核
 
 [English](README.en.md)
 
-BOQLint 是一个在浏览器本地运行的工程量清单 Excel 交付前检查器，帮助造价人员定位字段缺失、无效数值、重复项、单位冲突、金额计算和公式错误等数据质量问题。
+BOQ Lint（清单校核）是一款面向中国工程造价人员的本地工程量清单 Excel 风险检查器。它在浏览器中识别工作表、表头和字段，运行可解释的辅助检查规则，并导出可交付的问题清单；工程文件不会上传到服务器。
 
-[在线体验](https://kanadek.github.io/boq-lint/) · [GitHub Release](https://github.com/KanadeK/boq-lint/releases/tag/v0.1.0) · [规则说明](docs/rules.md) · [隐私说明](docs/privacy.md) · [贡献指南](CONTRIBUTING.md)
+> **English summary:** BOQ Lint is a local-first Excel quality checker for Bill of Quantities, Quantity Surveying, Construction Cost, Cost Estimation, and Tendering workflows. It runs entirely in the browser, requires no API key, and never uploads the selected workbook.
 
-![BOQLint 含问题清单检查结果](docs/preview.png)
+![BOQ Lint 应用总览](docs/assets/overview.png)
 
-> 文件仅在本机浏览器中处理，不会上传。BOQLint 不修改原始工作簿，只生成独立的检查报告。
+另见：[问题结果截图](docs/assets/issues.png) · [规则目录](docs/rule-catalog.md) · [领域假设](docs/domain-assumptions.md) · [隐私说明](docs/privacy.md)
 
-## 它在工作流中的位置
+## 实际解决的问题
 
-```text
-工程量清单编制或计价完成
-          ↓
-      导出 .xlsx
-          ↓
-   BOQLint 本地检查
-          ↓
-人工修正字段、重复项、金额或公式问题
-          ↓
-导入计价软件、提交复核或正式交付
-```
+工程量清单在进入计价软件、提交复核或交付招标文件前，常见以下数据质量风险：
 
-BOQLint 是交付前的数据质量辅助工具，不是计价软件、结算审核助手、价格数据库或清单编码生成器。
+- 不同来源的 Excel 使用不同工作表、起始行和表头名称；
+- 项目编码、项目名称、项目特征、计量单位、工程量、综合单价或合价缺失；
+- 工程量、单价和合价不是有效数值，或金额计算不一致；
+- 重复编码、疑似重复列项和同类项目单价离散不易人工发现；
+- 项目特征过短，或仅填写“详见图纸”“同上”等占位表达；
+- 公式单元格没有可读取的缓存结果；
+- 隐藏行、隐藏列或明细区合并单元格影响数据读取；
+- 复核问题缺少统一、可追溯、可导出的交付格式。
+
+BOQ Lint 只负责工程量清单 Excel 的数据质量与一致性辅助检查，不修改原工作簿，也不替代计价软件或专业复核。
 
 ## 三步使用
 
-1. **选择模式并导入**：选择“未计价工程量清单”或“已计价工程量清单”，拖放 `.xlsx`，也可以加载内置的正常/含问题示例。
-2. **确认识别与映射**：选择要检查的工作表，确认自动识别的表头行和字段映射；模板不同时可手动调整。
-3. **检查、定位与导出**：运行规则，按严重程度、规则、工作表或关键词筛选，查看原始行上下文，并导出 XLSX、CSV 或 JSON 报告。
+1. **导入文件**：拖放或选择一个不超过 20 MB 的 `.xlsx`，或加载项目内置的虚构问题示例。页面会列出文件名、大小和工作表。
+2. **识别与映射**：确认要检查的工作表、自动识别的表头行和字段映射；必要时手动调整，并检查前 10 条数据预览。
+3. **风险检查与导出**：运行规则，按严重程度、规则、工作表或关键词筛选，定位到原始 Excel 行，并导出 XLSX、CSV 或 JSON 报告。
 
-页面内部以“导入 → 映射 → 检查 → 结果”四步呈现完整进度。
+## 在行业工作流中的位置
 
-## 两种检查模式
+```text
+计价软件或内部模板导出工程量清单 .xlsx
+                      ↓
+        BOQ Lint 本地识别、映射与辅助检查
+                      ↓
+          复核人员筛选、定位并导出问题清单
+                      ↓
+       编制人员回到原 Excel 或计价软件修正
+                      ↓
+             再次导入复检，直至风险收敛
+```
 
-| 模式             | 必需字段                                             | 金额校验                        |
-| ---------------- | ---------------------------------------------------- | ------------------------------- |
-| 未计价工程量清单 | 项目编码、项目名称、计量单位、工程量                 | 不要求综合单价和合价            |
-| 已计价工程量清单 | 项目编码、项目名称、计量单位、工程量、综合单价、合价 | 启用工程量 × 综合单价与合价校验 |
+## 本地隐私
 
-两种模式都会将项目特征为空列为警告。
+- 文件字节、单元格、字段映射和检查结果只存在于当前页面内存中。
+- 应用没有后端、数据库、账号、云存储、遥测、广告、AI 或大模型调用。
+- 刷新、关闭页面或清空当前文件后，不恢复上传文件、文件名、映射或检查结果。
+- 静态托管只提供应用资源和虚构示例；用户导入的工程文件不会形成上传请求。
+- CSV 导出会防护以 `=`、`+`、`-`、`@` 开头的电子表格公式注入内容。
 
-## 支持的文件与限制
+完整说明见 [docs/privacy.md](docs/privacy.md)。
 
-| 文件                     | v0.1.0 支持情况                |
-| ------------------------ | ------------------------------ |
-| `.xlsx`                  | 正式支持；在浏览器本地读取     |
-| `.xls`                   | 不支持；请先另存为 `.xlsx`     |
-| 加密或受密码保护的工作簿 | 不支持；会给出明确提示         |
-| 损坏或无法解析的工作簿   | 不支持；会给出可理解的错误信息 |
-| `.xlsm`、PDF、CSV 导入   | 不在 v0.1.0 支持范围内         |
+## 支持范围
 
-浏览器不是 Excel/WPS 计算引擎。公式存在但没有可读取的缓存结果时，BOQLint 会提示用户重新计算并保存，不会猜测公式结果。
+| 文件或场景                   | v0.1.0 支持情况            |
+| ---------------------------- | -------------------------- |
+| `.xlsx`                      | 支持，默认单文件上限 20 MB |
+| `.xls`                       | 不支持，请先另存为 `.xlsx` |
+| `.xlsm`                      | 不支持，不执行宏           |
+| PDF                          | 不支持                     |
+| 加密、损坏或无法解析的工作簿 | 拒绝并显示明确错误         |
+| 多工作表                     | 支持选择一张或多张工作表   |
+| 本地文件上传到服务器         | 不存在                     |
 
-## 检查规则
+浏览器不是 Excel/WPS 的公式计算引擎。公式缺少缓存结果时，BOQ Lint 只提示重新计算并保存，不猜测公式值。
 
-| 规则          | 默认级别 | 检查内容                                            |
-| ------------- | -------- | --------------------------------------------------- |
-| `REQ-001`     | 错误     | 当前模式的必需字段缺失                              |
-| `NUM-001`     | 错误     | 工程量、综合单价或合价不是有效数值                  |
-| `QTY-001`     | 警告     | 工程量等于零或小于零                                |
-| `DUP-001`     | 警告     | 同一工作表内出现完全相同的明细行                    |
-| `DUP-002`     | 警告     | 同一项目编码对应不同名称、单位或特征                |
-| `UNIT-001`    | 警告     | 同一编码或标准化名称出现不同计量单位                |
-| `CALC-001`    | 错误     | 已计价模式下合价与工程量 × 综合单价不一致           |
-| `FORMULA-001` | 错误     | 公式缓存结果为 `#REF!`、`#VALUE!`、`#DIV/0!` 等错误 |
-| `FORMULA-002` | 提示     | 公式没有可读取的缓存结果                            |
-| `TEXT-001`    | 警告     | 项目特征为空                                        |
-| `CODE-001`    | 警告     | 项目编码含首尾空格、换行或明显全角字符              |
-| `STRUCT-001`  | 警告     | 明细关键字段跨合并单元格                            |
-| `STRUCT-002`  | 提示     | 存在隐藏的明细行或关键字段列                        |
-| `STRUCT-003`  | 提示     | 明细区域出现重复表头，并从明细检查中排除            |
+## 规则概览
 
-`CALC-001` 使用 `decimal.js` 计算，默认绝对允许误差为 `0.01` 元。完整触发条件、降噪约定和修复建议见 [docs/rules.md](docs/rules.md)。
+所有规则均为“辅助检查规则”，可单独启用或关闭，并可恢复默认设置。
+
+| 规则    | 严重程度 | 检查内容                                     |
+| ------- | -------- | -------------------------------------------- |
+| `QG001` | error    | 项目名称缺失                                 |
+| `QG002` | error    | 计量单位缺失                                 |
+| `QG003` | error    | 工程量不是有限数值或小于零                   |
+| `QG004` | warning  | 工程量等于零                                 |
+| `QG005` | warning  | 项目编码缺失                                 |
+| `QG006` | info     | 编码去除空格后不是常见的 12 位数字格式       |
+| `QG007` | warning  | 同一工作表内出现重复非空项目编码             |
+| `QG008` | warning  | 名称、特征与单位指纹完全相同的疑似重复项     |
+| `QG009` | warning  | 项目特征为空、过短或使用占位表达             |
+| `QG010` | error    | 工程量 × 综合单价与合价超过允许误差          |
+| `QG011` | warning  | 综合单价等于零或小于零                       |
+| `QG012` | info     | 同类项目综合单价相对中位数离散过大           |
+| `QG013` | warning  | 公式存在但没有可用缓存结果                   |
+| `QG014` | info     | 隐藏行、隐藏列或明细区合并单元格造成结构风险 |
+
+`QG010` 使用 `decimal.js` 计算，默认允许误差为 `max(0.01 元, |合价| × 0.1%)`。完整触发条件、降噪边界和修改建议见 [docs/rule-catalog.md](docs/rule-catalog.md)。
+
+## 行识别
+
+应用会区分清单项目行、分部或章节标题行、小计/合计/总计行、备注行和空白行。只有适用的清单项目行才运行项目必填规则；每一行都保留 `rowType` 和可解释的判定原因。
 
 ## 报告导出
 
-- **CSV**：UTF-8 BOM，一行一个问题，便于在中文 Excel 中打开。
-- **JSON**：包含应用版本、文件基础信息、检查时间、模式、映射、规则配置、汇总和问题列表。
-- **XLSX**：独立检查报告，至少包含“检查汇总”“问题明细”“规则说明”三个工作表，不修改原文件。
+- **XLSX**：生成独立问题工作簿，不修改原文件。
+- **CSV**：UTF-8 编码，并对公式注入前缀进行防护。
+- **JSON**：包含版本、文件基础信息、映射、规则参数、汇总和问题列表。
 
-## 文件不上传
-
-- `.xlsx` 在当前页面的浏览器内存中解析、映射和检查。
-- 没有服务器、数据库、账号系统、云存储、遥测、统计或广告代码。
-- 不调用 AI、LLM、DeepSeek、OpenAI 或其他识别 API。
-- `localStorage` 只保存语言、主题和规则配置，不保存工作簿、文件名或检查结果。
-- 点击“清除文件与结果”、刷新或关闭页面后，内存中的工作簿状态被释放。
-- 导出操作完全在本地生成新文件。
-
-静态托管方仍可能按其政策记录普通页面访问元数据，但用户选择的工作簿内容不会被应用上传。详见 [docs/privacy.md](docs/privacy.md)。
-
-## 离线单文件版
-
-发布包包含：
-
-```text
-release/boq-lint-v0.1.0.html
-release/boq-lint-v0.1.0.html.sha256
-```
-
-下载两者后可先校验 SHA-256，再双击 HTML。脚本、样式和必要资源均已内联，不依赖 CDN；导入、检查和报告导出仍在本机完成。请仅从可信发布来源获取该文件。
-
-Windows PowerShell 校验示例：
-
-```powershell
-Get-FileHash .\boq-lint-v0.1.0.html -Algorithm SHA256
-```
-
-## 本地开发
-
-需要 Node.js 20 或更高版本和 npm。
-
-```bash
-npm ci
-npm run samples
-npm run dev
-```
-
-质量与发布准备命令：
-
-```bash
-npm run format
-npm run format:check
-npm run lint
-npm run typecheck
-npm run test
-npm run test:coverage
-npm run test:e2e
-npm run build
-npm run build:offline
-npm run package
-npm run check
-```
-
-三个完全虚构、可重复生成的示例位于 `public/samples/`。不要提交真实项目、公司、客户或价格数据。
+每条问题可追溯到工作表、Excel 行号、字段、原值、问题说明和修改建议。
 
 ## 项目边界
 
-BOQLint 明确不做以下事情：
+- 仅凭一份清单 Excel 无法判断图纸中是否存在真正漏项。
+- 编码格式因地区、行业和企业模板而异，只能提示复核，不能武断认定违规。
+- 负单价、零单价可能对应赠送、抵扣、调整或暂不计价等业务场景。
+- 同名同单位项目的价格差异只表示需要复核，不代表价格错误。
+- 本项目不内置标准正文、定额库、价格库或商业软件样本。
+- 本项目不宣称“完全符合 GB/T 50500-2024”，也不替代注册造价工程师审核。
 
-- 不生成或判断市场价格，不评价综合单价高低。
-- 不判断定额套用、地区完整编码规则或行政合规性。
-- 不自动生成、替换或修改清单编码。
-- 不修改用户原始工作簿。
-- 不提供结算审核、ERP、账号协作或在线存储能力。
-- 不输出 AI 审核结论，也不承诺通过任何计价软件或行政审查。
-- 不复制国家标准中的大段表格、编码库或其他受限制内容。
+更完整的行业假设见 [docs/domain-assumptions.md](docs/domain-assumptions.md)。
 
-产品工作场景可参考住房城乡建设部的[《建设工程工程量清单计价标准》公告](https://www.mohurd.gov.cn/gongkai/zc/wjk/art/2024/art_6186304e164c4c4982904f8734983235.html)，但 BOQLint 与该标准的发布、解释或认证机构没有关联，也不进行标准符合性认证。
+> BOQ Lint 仅用于工程量清单 Excel 数据质量辅助检查，不构成造价审核结论，也不能替代图纸、合同、计量规则及专业人员复核。
 
-> **BOQLint 是通用数据质量辅助工具，不构成工程造价专业意见，也不代表检查结果符合任何国家、行业或地方标准。正式成果文件仍需由具备相应资格的专业人员复核。**
+## 本地开发
 
-## 路线图
+要求：
 
-- `v0.1.x`：稳定 `.xlsx` 导入、双语界面、规则准确性、报告导出和离线版。
-- `v0.2`：在不上传文件的前提下增强模板适配与可移植的别名配置。
-- `v0.3`：评估两版清单差异对比，保留人工确认和可解释匹配依据。
+- Node.js 22
+- pnpm 10.13.1
+- Playwright Chromium（仅端到端测试需要）
 
-路线图不是发布日期承诺。价格判断、自动计价、AI 审核和云端工程资料管理不在规划范围内。
+```bash
+corepack enable
+corepack prepare pnpm@10.13.1 --activate
+pnpm install --frozen-lockfile
+pnpm generate:samples
+pnpm dev
+```
+
+常用命令：
+
+```bash
+pnpm dev
+pnpm build
+pnpm preview
+pnpm lint
+pnpm format
+pnpm format:check
+pnpm typecheck
+pnpm test
+pnpm test:coverage
+pnpm exec playwright install chromium
+pnpm test:e2e
+pnpm generate:samples
+pnpm check
+```
+
+`pnpm check` 依次执行 lint、format check、typecheck、单元测试和生产构建。
+
+## GitHub Pages 部署
+
+Vite 使用 `base: './'` 生成相对资源路径，可部署到 GitHub Pages 仓库子目录。
+
+`.github/workflows/deploy-pages.yml` 在 `main` 分支推送或手动触发时：
+
+1. 使用 Node.js 22 和 pnpm 10.13.1 冻结安装依赖；
+2. 执行 `pnpm build`；
+3. 通过 `actions/configure-pages` 和 `actions/upload-pages-artifact` 上传 `dist/`；
+4. 通过 `actions/deploy-pages` 部署，不向源码分支提交构建产物。
+
+仓库 Settings → Pages 的 Source 应选择 **GitHub Actions**。工作流不需要自定义 Secret，也不依赖后端。
+
+## 示例文件
+
+项目脚本生成两个完全虚构、可重复生成的验收示例：
+
+- `examples/boq-clean-sample.xlsx`
+- `examples/boq-risk-sample.xlsx`
+
+这些文件不包含真实工程、企业、客户、定额或商业软件数据。
 
 ## 贡献
 
-欢迎贡献表头同义词、低误报规则、无障碍改进、测试和完全虚构的示例。提交前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。安全问题请按 [SECURITY.md](SECURITY.md) 私密报告，不要在公开 Issue 中附真实工程文件。
+欢迎提交表头别名、单位规范化、行分类、无障碍、英文界面、测试和虚构示例改进。请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 与 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。安全问题请按 [SECURITY.md](SECURITY.md) 私密报告，禁止在公开 Issue 上传真实工程文件。
+
+## 路线图
+
+v0.1.0 只实现 Excel 本地检查。v0.2.0 至 v0.5.0 的规划、建议仓库 Topics 和适合 `good first issue` 的任务见 [docs/roadmap.md](docs/roadmap.md)。
 
 ## License
 
-[MIT](LICENSE) © BOQLint contributors
+[MIT](LICENSE) © BOQ Lint contributors

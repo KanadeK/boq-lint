@@ -1,5 +1,5 @@
 name: Bug report / 缺陷报告
-description: Report a reproducible BOQLint problem using fictional or fully sanitized data.
+description: Report a reproducible BOQ Lint problem using fictional or fully sanitized data.
 title: '[Bug] '
 labels:
   - bug
@@ -12,8 +12,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: BOQLint version / 版本
-      description: For example, v0.1.0, the offline file name, or a commit SHA.
+      label: BOQ Lint version / 版本
+      description: For example, v0.1.0, the GitHub Pages build, or a commit SHA.
       placeholder: v0.1.0
     validations:
       required: true
@@ -24,7 +24,6 @@ body:
       label: Build / 使用方式
       options:
         - GitHub Pages online build
-        - Single-file offline HTML
         - Local development server
         - Automated test or library code
     validations:
@@ -46,7 +45,7 @@ body:
     attributes:
       label: Environment / 环境
       description: Operating system, browser and version, device type, Node.js version when relevant.
-      placeholder: Windows 11; Chrome 126; desktop; Node.js 20.x
+      placeholder: Windows 11; current Chrome; desktop; Node.js 22.x
     validations:
       required: true
 
@@ -82,7 +81,7 @@ body:
     attributes:
       label: Fictional reproduction / 虚构复现
       description: Describe or attach only a small, entirely fictional file. You may also identify an existing built-in sample and row.
-      placeholder: public/samples/boq-issues-zh.xlsx, row 12
+      placeholder: examples/boq-risk-sample.xlsx, row 12
 
   - type: checkboxes
     id: confirmations

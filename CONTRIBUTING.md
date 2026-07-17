@@ -1,114 +1,108 @@
-# Contributing to BOQLint
+# Contributing to BOQ Lint
 
-Thank you for helping improve BOQLint / 清单体检. Contributions should preserve four principles: local-only processing, explainable rules, low false-positive rates, and strict protection of engineering data.
+感谢你帮助改进 BOQ Lint / 清单校核。贡献应始终保护四项原则：工程文件本地处理、规则可解释、误报可控制、公开材料不包含真实工程数据。
 
-## Before opening an issue
+## 提交 Issue 前
 
-- Search existing issues and the [rule reference](docs/rules.md).
-- Use the bug or feature issue form and provide the smallest useful reproduction.
-- Never upload a real project workbook, client name, company name, bid price, contract information, personal data, credentials, or proprietary software export.
-- Create a minimal fictional workbook or extend `scripts/generate-samples.ts` with clearly fictional data.
-- Report potential vulnerabilities privately under [SECURITY.md](SECURITY.md), not in a public issue.
+- 搜索现有 Issue，并阅读 [规则目录](docs/rule-catalog.md) 与 [领域假设](docs/domain-assumptions.md)。
+- 使用 Bug 或 Feature Issue 表单，提供最小、完全虚构的复现。
+- 禁止上传真实工程工作簿、客户或企业名称、非公开价格、投标或合同信息、个人数据、凭据、商业软件样本或受限制资料。
+- 安全漏洞按 [SECURITY.md](SECURITY.md) 私密报告，不要创建公开 Issue。
 
-## Scope
+## 可接受的贡献范围
 
-Good contributions include:
+- 增加不冲突的中文或英文字段别名；
+- 改进行分类、合计行识别和单位规范化；
+- 为 QG001–QG014 降低误报或补充边界测试；
+- 改善键盘操作、ARIA、颜色对比度和移动端可读性；
+- 改进本地报告互操作性与性能；
+- 增加完全虚构、脚本可重复生成的示例。
 
-- additional non-conflicting Chinese or English header aliases;
-- better mapping and row-classification edge cases;
-- precise, explainable, low-noise checks within the documented rule set;
-- accessibility, responsive-layout, and bilingual-copy improvements;
-- performance work for large local workbooks;
-- report interoperability and test coverage; and
-- entirely fictional, script-generated sample cases.
+涉及文件上传、后端、账号、遥测、广告、AI/LLM、市场价格判断、自动计价、ERP、标准符合性认证或受限制数据库的提案不属于核心项目范围。
 
-Please discuss proposals that materially change the product boundary before implementation. BOQLint does not accept features for cloud upload, accounts, telemetry, advertising, AI/LLM review, market-price judgment, automatic coding, costing, ERP, or final-account audit.
+## 开发环境
 
-Do not copy substantial tables, code libraries, or text from standards, proprietary costing products, price databases, or restricted sources.
+要求：
 
-## Development setup
-
-Requirements:
-
-- Node.js 20 or later
-- npm
-- Chromium installed through Playwright for end-to-end tests
+- Node.js 22
+- pnpm 10.13.1
+- Playwright Chromium（端到端测试）
 
 ```bash
-npm ci
-npx playwright install chromium
-npm run samples
-npm run dev
+corepack enable
+corepack prepare pnpm@10.13.1 --activate
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
+pnpm generate:samples
+pnpm dev
 ```
 
-Do not use another package manager to update the lockfile. Do not commit `node_modules/`, build output, Playwright reports, local logs, or real workbooks.
+请使用 pnpm 更新依赖和锁文件。不要提交 `node_modules/`、`dist/`、覆盖率、Playwright 报告、日志、构建缓存或真实工作簿。
 
-## Making a change
+## 修改要求
 
-1. Keep the change focused and update tests with the implementation.
-2. Preserve TypeScript strictness; do not hide errors with broad `any`, disabled lint rules, or skipped tests.
-3. Use `decimal.js` for monetary comparisons instead of binary floating-point arithmetic.
-4. Keep workbook processing and report generation in the browser. Do not add upload requests.
-5. Render workbook content as text. Treat cell values, formulas, file names, and imported JSON configuration as untrusted input.
-6. Add every user-facing string in Simplified Chinese and English.
-7. Ensure status remains understandable without color and controls remain keyboard accessible.
-8. Update documentation when behavior, configuration, rules, file support, or privacy boundaries change.
+1. 保持改动聚焦，并用确定性测试覆盖新增或修改行为。
+2. 保持严格 TypeScript；不得用宽泛 `any`、关闭规则、删除断言或跳过测试掩盖问题。
+3. 金额运算使用 `decimal.js`，不得直接依赖 JavaScript 浮点数。
+4. 工程文件解析、检查和报告生成保持在浏览器本地，不增加上传请求。
+5. 把工作簿文本、文件名、公式和导入配置视为不可信输入。
+6. 用户可见状态不能只依赖颜色，交互应支持键盘并提供合理 ARIA。
+7. 行为、规则、格式、隐私或边界变化必须同步更新 README、docs 和 CHANGELOG。
 
-### Rule changes
+### 规则修改
 
-Every rule must have a stable ID, default severity, explanation, remediation, applicability, and deterministic tests. Preserve these behavior requirements:
+每条规则必须包含稳定的 `id`、名称、说明、严重程度、类别、适用行类型、`check()`、修改建议和默认启用状态。
 
-- `REQ-001` and `NUM-001` cannot be disabled in their applicable mode.
-- Sections, subtotals/totals, blank rows, and repeated headers are not ordinary detail rows.
-- Negative quantity is a warning because adjustment scenarios may be valid.
-- A missing formula cache is informational and must not be reported as a definite amount error.
-- Regional coding, pricing, and professional-compliance conclusions remain out of scope.
+- 所有规则都可单独启用或关闭；
+- 规则运行顺序固定为 QG001–QG014；
+- 相同单元格、相同规则不得重复报错；
+- 分部标题、合计行、备注行和空白行不套用项目必填规则；
+- 每条问题可追溯到工作表、Excel 行号、字段和原值。
 
-Update [docs/rules.md](docs/rules.md) and [CHANGELOG.md](CHANGELOG.md) with user-visible rule changes.
+用户可见的规则变化必须同步 [docs/rule-catalog.md](docs/rule-catalog.md)。
 
-### Sample changes
+### 示例修改
 
-All sample data must state that it is fictional and must not resemble a real project or price schedule. Generate samples with:
+示例必须完全虚构、可重复生成，不得类似真实项目或价格表。
 
 ```bash
-npm run samples
+pnpm generate:samples
 ```
 
-The generator must be deterministic. Re-run it twice and compare hashes when changing workbook generation. Confirm valid samples remain clean in their supported modes and the issue sample still covers every documented case.
+修改生成逻辑时，连续生成两次并比较哈希；确认干净示例没有 error，风险示例稳定触发预期规则。
 
-### UI changes
+### 界面和截图
 
-Check at least desktop (`1440×900`), tablet, and narrow mobile widths. If the results or social-preview layout changes, regenerate `docs/preview.png` and `docs/social-preview.png` with `scripts/capture-docs.ts`; do not draw or fabricate placeholder images.
+至少检查 1440×900、1920×1080、1024 px 宽度和窄屏可读性。可见界面变化应从真实运行页面重新生成：
 
-## Required checks
+- `docs/assets/overview.png`
+- `docs/assets/issues.png`
 
-Run the relevant focused tests while developing, then run the full gate before submitting:
+不得绘制概念图冒充产品截图，也不得提交空白或占位图片。
+
+## 提交前检查
 
 ```bash
-npm run format:check
-npm run lint
-npm run typecheck
-npm run test:coverage
-npm run test:e2e
-npm run build
-npm run build:offline
-npm run package
+pnpm lint
+pnpm format:check
+pnpm typecheck
+pnpm test
+pnpm test:coverage
+pnpm build
+pnpm test:e2e
+pnpm check
 ```
 
-Report exactly which commands ran and their results. Do not claim checks that were not executed.
+如实报告实际运行的命令和结果，不要声称未执行的检查通过。
 
-## Pull requests
+## Pull Request
 
-Use a short imperative title and explain:
+请说明：
 
-- the problem and user impact;
-- the chosen approach and trade-offs;
-- tests actually run;
-- privacy, security, accessibility, and boundary impact; and
-- screenshots for visible UI changes.
+- 解决的问题和用户影响；
+- 实现方法与取舍；
+- 实际运行的测试；
+- 隐私、安全、可访问性和专业边界影响；
+- 可见变化的真实页面截图。
 
-Keep commits understandable and do not rewrite unrelated user work. By contributing, you confirm that you have the right to provide the contribution under the project's [MIT License](LICENSE) and that it contains no confidential or restricted material.
-
-## Community
-
-Participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Technical disagreement is welcome; harassment, data exposure, and personal attacks are not.
+参与行为受 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) 约束。提交贡献即表示你有权按项目 [MIT License](LICENSE) 提供内容，且内容不含机密或受限制材料。

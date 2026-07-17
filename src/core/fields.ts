@@ -163,7 +163,7 @@ function isViableHeader(mapping: FieldMapping): boolean {
 
 export function detectHeaderCandidates(
   rows: readonly RowSnapshot[],
-  maxRows = 30,
+  maxRows = 50,
 ): readonly HeaderCandidate[] {
   return rows
     .filter((row) => row.rowNumber <= maxRows)

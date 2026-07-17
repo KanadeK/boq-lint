@@ -32,15 +32,18 @@ export {
 export { calculateTotal, parseLocaleNumber, roundMoney } from './numbers';
 export {
   classifyMappedRow,
+  classifyMappedRowWithReason,
   formulaError,
+  hasUsableFormulaResult,
   isMissing,
   mapSheetRows,
   normalizeComparable,
   normalizeText,
 } from './rows';
+export { RULE_DEFINITIONS } from './rule-definitions';
 export { checkWorkbook, runLint } from './rules';
 export { APP_VERSION, BoqLintError, FIELD_KEYS, RULE_IDS } from './types';
-export { loadWorkbook, parseWorkbook } from './workbook';
+export { MAX_XLSX_FILE_SIZE, loadWorkbook, parseWorkbook } from './workbook';
 
 export type {
   CalculationDetails,
@@ -53,6 +56,7 @@ export type {
   HeaderCandidate,
   LintIssue,
   LintReport,
+  LintRule,
   LintSummary,
   MappedCell,
   MappedRow,
@@ -63,7 +67,10 @@ export type {
   ProgressStage,
   RowSnapshot,
   RowType,
+  RuleCategory,
   RuleConfig,
+  RuleContext,
+  RuleFinding,
   RuleId,
   RuleMetadata,
   RunLintOptions,
@@ -80,3 +87,4 @@ export type {
 export type { FieldDefinition } from './fields';
 export type { JsonReportPayload } from './exports';
 export type { NumberParseResult } from './numbers';
+export type { RowClassification } from './rows';

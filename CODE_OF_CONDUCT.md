@@ -2,7 +2,7 @@
 
 ## Our pledge
 
-We pledge to make participation in BOQLint an inclusive, respectful, harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, sex characteristics, gender identity or expression, experience, education, socioeconomic status, nationality, appearance, race, religion, or sexual identity and orientation.
+We pledge to make participation in BOQ Lint an inclusive, respectful, harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, sex characteristics, gender identity or expression, experience, education, socioeconomic status, nationality, appearance, race, religion, or sexual identity and orientation.
 
 We also pledge to protect the confidentiality of engineering workbooks, client information, commercial data, and vulnerability reports shared in good faith.
 
@@ -32,7 +32,7 @@ Unacceptable behavior includes:
 
 ## Scope
 
-This Code applies in repository issues, pull requests, reviews, discussions, project-controlled communication channels, and public spaces when an individual is officially representing BOQLint.
+This Code applies in repository issues, pull requests, reviews, discussions, project-controlled communication channels, and public spaces when an individual is officially representing BOQ Lint.
 
 ## Reporting
 

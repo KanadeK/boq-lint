@@ -1,8 +1,8 @@
 # 隐私说明 / Privacy
 
-BOQLint 的核心承诺是：**用户选择的工程量清单文件只在当前浏览器本地处理，不会上传。**
+BOQ Lint 的核心承诺是：**用户选择的工程量清单文件只在当前浏览器本地处理，不会上传。**
 
-> BOQLint's core promise: **the workbook you select is processed only in the current browser and is not uploaded.**
+> BOQ Lint's core promise: **the workbook you select is processed only in the current browser and is not uploaded.**
 
 ## 数据流
 
@@ -22,7 +22,7 @@ BOQLint 的核心承诺是：**用户选择的工程量清单文件只在当前�
 
 ## 不收集的内容
 
-BOQLint 不会：
+BOQ Lint 不会：
 
 - 上传原始 Excel、解析后的单元格、字段映射或检查结果；
 - 使用后端、数据库、账号、登录、云存储或跨设备同步；
@@ -53,14 +53,10 @@ BOQLint 不会：
 
 用户导入本地工作簿后，解析、映射、检查和报告导出不需要上传请求。自动化测试会监听网络，并确认处理文件期间没有发送工作簿内容。
 
-### 单文件离线版
-
-`release/boq-lint-v0.1.0.html` 内联脚本、样式和必要资源，可通过 `file://` 双击打开。导入、检查和导出不应产生网络请求。请从可信发布来源获取文件并校验配套 SHA-256。
-
 ## 公式、宏和外部内容
 
-- BOQLint 不执行工作簿宏。
-- BOQLint 不充当 Excel/WPS 公式计算引擎；只读取文件中的公式文本和缓存结果。
+- BOQ Lint 不执行工作簿宏。
+- BOQ Lint 不充当 Excel/WPS 公式计算引擎；只读取文件中的公式文本和缓存结果。
 - 公式错误会报告；缺少缓存结果时只提示无法确认，不猜测数值。
 - 不跟随工作簿中的外部链接，也不加载嵌入的外部资源。
 - 单元格和工作表名称按不可信文本渲染，不作为 HTML 执行。
@@ -69,7 +65,7 @@ BOQLint 不会：
 
 报告只在用户点击导出时于本地生成。报告会包含定位和修复所需的信息，例如原文件基础信息、工作表、Excel 行号、项目编码、原始值和问题说明，因此导出的报告也可能是敏感工程资料。
 
-用户应按照所在组织的工程资料制度保护报告，包括访问权限、下载目录、备份、邮件和共享渠道。BOQLint 不控制用户保存报告后的传播。
+用户应按照所在组织的工程资料制度保护报告，包括访问权限、下载目录、备份、邮件和共享渠道。BOQ Lint 不控制用户保存报告后的传播。
 
 ## 用户环境仍然重要
 
@@ -82,7 +78,7 @@ BOQLint 不会：
 - 用户主动复制、截图、下载或发送的内容；或
 - 被篡改的非官方构建。
 
-处理敏感项目时，应使用受管设备和可信浏览器，限制扩展权限，从可信来源打开应用，校验离线文件，并妥善管理导出目录。
+处理敏感项目时，应使用受管设备和可信浏览器，限制扩展权限，从可信来源打开应用，并妥善管理导出目录。
 
 ## 自行验证
 
@@ -102,4 +98,4 @@ BOQLint 不会：
 
 ---
 
-**English summary:** BOQLint reads the selected `.xlsx` in browser memory, performs mapping and checks locally, and creates reports locally after a user action. It has no backend, accounts, database, telemetry, advertising, AI, or workbook upload. Only language, theme, and validated rule settings may be stored locally; workbook content, file names, mappings, and results are not persisted. Static hosting may receive ordinary page-resource request metadata under the host's own policy.
+**English summary:** BOQ Lint reads the selected `.xlsx` in browser memory, performs mapping and checks locally, and creates reports locally after a user action. It has no backend, accounts, database, telemetry, advertising, AI, or workbook upload. Only non-workbook preferences such as language, theme, and validated rule settings may be stored locally; workbook content, file names, mappings, and results are not persisted. Static hosting may receive ordinary page-resource request metadata under the host's own policy.
